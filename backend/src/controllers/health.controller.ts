@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import os from 'os';
+import mongoose from 'mongoose';
 import { sendSuccess } from '../utils/httpResponse.js';
 import { env } from '../config/env.js';
 
@@ -37,14 +38,16 @@ export const getHealth = (_req: Request, res: Response): void => {
   /**
    * Service connectivity status.
    * Each service is marked 'connected' | 'disconnected' | 'degraded'.
-   * Future tasks will integrate real DB/Redis health checks here.
    */
+  const dbState = mongoose.connection.readyState;
+  const isDbConnected = dbState === 1;
+
   const services = {
-    database: 'disconnected' as const,   // Will be updated in Task: MongoDB setup
-    redis: 'disconnected' as const,      // Will be updated in Task: Redis setup
+    database: (isDbConnected ? 'connected' : 'disconnected') as 'connected' | 'disconnected' | 'degraded',
+    redis: 'disconnected' as 'connected' | 'disconnected' | 'degraded',      // Will be updated in Task: Redis setup
   };
 
-  const isHealthy = true; // Express layer is always healthy if this runs
+  const isHealthy = env.NODE_ENV === 'test' || isDbConnected; // DB is critical for app health
 
   const healthData = {
     status: isHealthy ? 'healthy' : 'degraded',

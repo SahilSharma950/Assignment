@@ -4,6 +4,7 @@ import { createServer } from 'http';
 import { app } from './app.js';
 import { logger } from './utils/logger.js';
 import { env } from './config/env.js';
+import { connectDatabase, disconnectDatabase } from './config/db.js';
 
 /**
  * Server bootstrap — Task 2 (Express only).
@@ -26,6 +27,8 @@ async function bootstrap(): Promise<void> {
     logger.info(`   Port        : ${env.PORT}`);
     logger.info(`   Log level   : ${env.LOG_LEVEL}`);
 
+    await connectDatabase();
+
     const httpServer = createServer(app);
 
     httpServer.listen(env.PORT, () => {
@@ -42,12 +45,13 @@ async function bootstrap(): Promise<void> {
       logger.warn(`\n⚠️  Received ${signal} — shutting down gracefully...`);
 
       // Stop accepting new connections
-      httpServer.close((err) => {
+      httpServer.close(async (err) => {
         if (err) {
           logger.error('Error closing HTTP server:', err);
           process.exit(1);
         }
 
+        await disconnectDatabase();
         logger.info('✅ HTTP server closed.');
         logger.info('👋 Shutdown complete. Goodbye!');
         process.exit(0);
