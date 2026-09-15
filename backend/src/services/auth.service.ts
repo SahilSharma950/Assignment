@@ -1,6 +1,8 @@
 import { userRepository } from '../repositories/user.repository.js';
 import { ConflictError, UnauthorizedError } from '../utils/AppError.js';
 import { generateTokens, AuthTokens } from '../utils/jwt.js';
+import { tokenService } from './token.service.js';
+import { verifyRefreshToken } from '../utils/jwt.js';
 import { IUser } from '../models/user.model.js';
 
 export interface RegisterDTO {
@@ -44,6 +46,9 @@ class AuthService {
     // Generate tokens
     const tokens = generateTokens(user.id);
 
+    // Save refresh token securely in Redis
+    await tokenService.saveRefreshToken(user.id, tokens.refreshToken);
+
     return { user, tokens };
   }
 
@@ -70,7 +75,30 @@ class AuthService {
     // Generate tokens
     const tokens = generateTokens(user.id);
 
+    // Save refresh token securely in Redis
+    await tokenService.saveRefreshToken(user.id, tokens.refreshToken);
+
     return { user, tokens };
+  }
+
+  /**
+   * Refreshes the access token using a valid refresh token.
+   */
+  async refresh(refreshToken: string): Promise<AuthTokens> {
+    // 1. Verify JWT signature & expiration of refresh token
+    const payload = verifyRefreshToken(refreshToken);
+
+    // 2. Delegate rotation and new token issuance to tokenService
+    const newTokens = await tokenService.rotateTokens(refreshToken, payload.userId);
+
+    return newTokens;
+  }
+
+  /**
+   * Logs out a user by invalidating their refresh token.
+   */
+  async logout(userId: string, refreshToken: string): Promise<void> {
+    await tokenService.revokeToken(userId, refreshToken);
   }
 }
 

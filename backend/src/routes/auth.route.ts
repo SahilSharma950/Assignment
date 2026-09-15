@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { register, login, logout } from '../controllers/auth.controller.js';
+import { register, login, logout, refresh } from '../controllers/auth.controller.js';
+import { requireAuth } from '../middleware/requireAuth.js';
 
 export const authRoute = Router();
 
@@ -71,4 +72,19 @@ authRoute.post('/login', login);
  *       200:
  *         description: Logged out
  */
-authRoute.post('/logout', logout);
+authRoute.post('/logout', requireAuth, logout);
+
+/**
+ * @swagger
+ * /api/auth/refresh:
+ *   post:
+ *     tags:
+ *       - Authentication
+ *     summary: Refresh access token using HTTP-only cookie
+ *     responses:
+ *       200:
+ *         description: Token refreshed
+ *       401:
+ *         description: Invalid or expired refresh token
+ */
+authRoute.post('/refresh', refresh);

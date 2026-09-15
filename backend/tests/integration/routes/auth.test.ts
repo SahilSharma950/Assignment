@@ -102,8 +102,16 @@ describe('Auth Routes (Integration)', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
-      // set-cookie header should exist to clear the cookie (e.g. Max-Age=0)
+      // set-cookie header should exist to clear the cookie
       expect(response.headers['set-cookie']).toBeDefined();
+    });
+  });
+
+  describe('POST /api/auth/refresh', () => {
+    it('should return 401 if no refresh token cookie is provided', async () => {
+      const response = await request(app).post('/api/auth/refresh');
+      expect(response.status).toBe(401);
+      expect(response.body.message).toBe('No refresh token provided');
     });
   });
 });

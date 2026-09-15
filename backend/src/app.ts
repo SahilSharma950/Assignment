@@ -3,6 +3,7 @@ import express, { type Express } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import compression from 'compression';
+import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 import swaggerUi from 'swagger-ui-express';
@@ -80,8 +81,9 @@ const globalLimiter = rateLimit({
   skip: () => env.NODE_ENV === 'test',
 });
 
-// ─── Compression ──────────────────────────────────────────────────────────────
+// ─── Compression & Parsers ────────────────────────────────────────────────────
 app.use(compression());
+app.use(cookieParser());
 
 // ─── Body Parsing ─────────────────────────────────────────────────────────────
 app.use(express.json({ limit: `${env.MAX_FILE_SIZE_MB}mb` }));
