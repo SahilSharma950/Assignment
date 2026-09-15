@@ -1,0 +1,30 @@
+import { configureStore } from '@reduxjs/toolkit';
+
+/**
+ * Redux store configuration.
+ *
+ * Slices are added here as features are implemented in future tasks:
+ *  - authSlice        → Task: Authentication
+ *  - workspaceSlice   → Task: Workspace management
+ *  - boardSlice       → Task: Kanban boards
+ *  - documentSlice    → Task: Rich-text documents
+ *  - chatSlice        → Task: Real-time messaging
+ *  - notificationSlice → Task: Notifications
+ *  - uiSlice          → Task: UI state (theme, sidebar, modals)
+ */
+export const store = configureStore({
+  reducer: {
+    // Slices injected per task
+  },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: {
+        // Ignore Socket.io non-serializable values
+        ignoredActions: ['socket/connected', 'socket/disconnected'],
+      },
+    }),
+  devTools: import.meta.env.DEV,
+});
+
+export type RootState = ReturnType<typeof store.getState>;
+export type AppDispatch = typeof store.dispatch;

@@ -1,0 +1,84 @@
+/**
+ * Global styles entry point.
+ *
+ * Layer order:
+ *  1. @tailwind base       — Preflight reset + CSS variables
+ *  2. @tailwind components — Component classes
+ *  3. @tailwind utilities  — Utility classes
+ *  4. Custom globals       — Scrollbar, selection, focus ring, etc.
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── CSS Custom Properties ────────────────────────────────────────────────── */
+@layer base {
+  :root {
+    --color-primary: 99 102 241;    /* indigo-500 */
+    --color-surface: 15 23 42;      /* slate-900 */
+    --radius-base: 0.5rem;
+    --transition-base: 150ms ease-in-out;
+  }
+
+  * {
+    @apply border-surface-200 dark:border-surface-800;
+  }
+
+  html {
+    @apply scroll-smooth;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  body {
+    @apply bg-white text-slate-900 font-sans antialiased;
+    @apply dark:bg-surface-900 dark:text-slate-100;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-1.5 h-1.5;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 rounded-full;
+    @apply dark:bg-slate-700;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-400 dark:bg-slate-500;
+  }
+
+  /* Text selection */
+  ::selection {
+    @apply bg-primary-500/30 text-primary-900 dark:text-primary-100;
+  }
+
+  /* Focus ring — accessible & beautiful */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-primary-500;
+  }
+}
+
+/* ─── Component Layer ───────────────────────────────────────────────────────── */
+@layer components {
+  /* Glassmorphism card */
+  .glass-card {
+    @apply bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl;
+    @apply dark:bg-slate-800/40 dark:border-slate-700/50;
+  }
+
+  /* Skeleton loading animation */
+  .skeleton {
+    @apply animate-shimmer bg-gradient-to-r;
+    background-size: 200% 100%;
+    @apply from-slate-200 via-slate-100 to-slate-200;
+    @apply dark:from-slate-800 dark:via-slate-700 dark:to-slate-800;
+  }
+
+  /* Page container */
+  .page-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+}

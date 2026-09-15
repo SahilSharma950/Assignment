@@ -1,0 +1,28 @@
+# Build outputs
+dist/
+build/
+out/
+.next/
+
+# Dependencies
+node_modules/
+
+# Package locks
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Generated files
+*.d.ts
+*.tsbuildinfo
+coverage/
+
+# Logs
+logs/
+*.log
+
+# Husky scripts
+.husky/_/
+
+# Docker
+*.pem

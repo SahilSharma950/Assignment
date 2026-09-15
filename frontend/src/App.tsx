@@ -1,0 +1,34 @@
+import type { FC } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+
+// ─── Lazy-loaded page groups (split per route) ─────────────────────────────────
+// Pages will be implemented in future tasks.
+// Placeholder structure is established here for routing scaffold.
+
+const App: FC = () => {
+  return (
+    <Routes>
+      {/* Public routes */}
+      <Route path="/login" element={<div>Login Page</div>} />
+      <Route path="/register" element={<div>Register Page</div>} />
+      <Route path="/forgot-password" element={<div>Forgot Password</div>} />
+
+      {/* Protected routes */}
+      <Route path="/dashboard" element={<div>Dashboard</div>} />
+      <Route path="/workspace/:workspaceId" element={<div>Workspace</div>} />
+      <Route path="/workspace/:workspaceId/board/:boardId" element={<div>Board</div>} />
+      <Route path="/workspace/:workspaceId/docs/:docId" element={<div>Document</div>} />
+      <Route path="/workspace/:workspaceId/chat/:channelId" element={<div>Chat</div>} />
+
+      {/* Error routes */}
+      <Route path="/404" element={<div>404 Not Found</div>} />
+      <Route path="/500" element={<div>500 Server Error</div>} />
+
+      {/* Default redirect */}
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/404" replace />} />
+    </Routes>
+  );
+};
+
+export default App;
