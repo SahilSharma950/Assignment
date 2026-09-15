@@ -8,6 +8,7 @@
 
 import type { Request } from 'express';
 import type { Document, Types } from 'mongoose';
+import type { IUser } from '../models/user.model.js';
 
 // ─── MongoDB Document Types ────────────────────────────────────────────────────
 
@@ -79,15 +80,10 @@ export const ROLE_HIERARCHY: Record<UserRole, number> = {
 
 export interface JwtPayload {
   userId: string;
-  email: string;
-  role: UserRole;
-  workspaces: string[];
-  iat: number;
-  exp: number;
 }
 
 export interface AuthenticatedRequest extends Request {
-  user?: JwtPayload;
+  user?: IUser;
 }
 
 // ─── Audit Log ────────────────────────────────────────────────────────────────

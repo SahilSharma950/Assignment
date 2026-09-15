@@ -14,6 +14,7 @@ import { requestIdMiddleware } from './middleware/requestId.js';
 import { notFoundHandler } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import healthRouter from './routes/health.route.js';
+import { authRoute } from './routes/auth.route.js';
 
 // ─── App Factory ───────────────────────────────────────────────────────────────
 export const app: Express = express();
@@ -126,7 +127,7 @@ app.use('/api', globalLimiter);
 app.use('/api/health', healthRouter);
 
 // Versioned routes — registered per task:
-// app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/auth', authRoute);
 // app.use('/api/v1/workspaces', workspaceRouter);
 // app.use('/api/v1/boards', boardRouter);
 // app.use('/api/v1/documents', documentRouter);
