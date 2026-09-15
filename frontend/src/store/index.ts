@@ -1,5 +1,8 @@
 import { configureStore } from '@reduxjs/toolkit';
 
+import authReducer from './slices/authSlice';
+import workspaceReducer from './slices/workspaceSlice';
+
 /**
  * Redux store configuration.
  *
@@ -14,7 +17,8 @@ import { configureStore } from '@reduxjs/toolkit';
  */
 export const store = configureStore({
   reducer: {
-    // Slices injected per task
+    auth: authReducer,
+    workspace: workspaceReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
