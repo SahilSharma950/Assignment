@@ -21,7 +21,7 @@ describe('Auth Routes (Integration)', () => {
         id: new mongoose.Types.ObjectId().toString(),
         name: 'Test User',
         email: 'test@example.com',
-        role: 'user',
+        role: 'member',
         comparePassword: jest.fn(),
       } as any);
 
@@ -61,7 +61,7 @@ describe('Auth Routes (Integration)', () => {
         id: new mongoose.Types.ObjectId().toString(),
         name: 'Test User',
         email: 'test@example.com',
-        role: 'user',
+        role: 'member',
         password: 'hashedpassword',
         comparePassword: jest.fn().mockResolvedValue(true),
       } as any);
