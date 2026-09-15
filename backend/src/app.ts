@@ -1,94 +1,141 @@
-import express, { type Express, type Request, type Response, type NextFunction } from 'express';
+import 'express-async-errors';
+import express, { type Express } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import compression from 'compression';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
+import swaggerUi from 'swagger-ui-express';
 
 import { env } from './config/env.js';
 import { logger } from './utils/logger.js';
+import { swaggerSpec } from './config/swagger.js';
+import { requestIdMiddleware } from './middleware/requestId.js';
+import { notFoundHandler } from './middleware/notFound.js';
+import { errorHandler } from './middleware/errorHandler.js';
+import healthRouter from './routes/health.route.js';
 
 // ─── App Factory ───────────────────────────────────────────────────────────────
 export const app: Express = express();
 
-// ─── Trust Proxy (for rate limiting behind load balancer) ─────────────────────
+// ─── Trust Proxy ──────────────────────────────────────────────────────────────
+// Required for accurate IP detection behind load balancers (rate limiting, logging)
 app.set('trust proxy', 1);
 
+// ─── Request ID ───────────────────────────────────────────────────────────────
+// Must be first — downstream middleware + controllers use req.requestId
+app.use(requestIdMiddleware);
+
 // ─── Security Headers ─────────────────────────────────────────────────────────
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],   // Swagger UI needs inline styles
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", 'data:', 'https:'],
+      },
+    },
+    crossOriginEmbedderPolicy: false,              // Swagger UI asset loading
+  }),
+);
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 app.use(
   cors({
-    origin: env.CORS_ORIGIN,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (curl, mobile apps, Postman)
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      if (env.CORS_ORIGIN.includes(origin) || env.CORS_ORIGIN.includes('*')) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS: origin '${origin}' is not allowed`));
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Refresh-Token'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Refresh-Token', 'X-Request-ID'],
+    exposedHeaders: ['X-Request-ID'],
   }),
 );
 
 // ─── Rate Limiting ─────────────────────────────────────────────────────────────
+// Applied only to /api to avoid rate-limiting the health check root and docs
 const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500,
+  windowMs: env.RATE_LIMIT_WINDOW_MS,
+  max: env.RATE_LIMIT_MAX,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { success: false, message: 'Too many requests — please try again later.' },
+  keyGenerator: (req) => req.requestId ?? req.ip ?? 'unknown',
+  message: {
+    success: false,
+    message: 'Too many requests — please try again later.',
+    statusCode: 429,
+  },
+  skip: () => env.NODE_ENV === 'test',
 });
-app.use('/api', globalLimiter);
 
 // ─── Compression ──────────────────────────────────────────────────────────────
 app.use(compression());
 
 // ─── Body Parsing ─────────────────────────────────────────────────────────────
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: `${env.MAX_FILE_SIZE_MB}mb` }));
+app.use(express.urlencoded({ extended: true, limit: `${env.MAX_FILE_SIZE_MB}mb` }));
 
-// ─── HTTP Logging ─────────────────────────────────────────────────────────────
+// ─── HTTP Request Logging ─────────────────────────────────────────────────────
 app.use(
-  morgan('combined', {
-    stream: { write: (msg: string) => logger.http(msg.trimEnd()) },
-    skip: () => env.NODE_ENV === 'test',
+  morgan(
+    ':method :url :status :res[content-length] - :response-time ms [:req[x-request-id]]',
+    {
+      stream: { write: (msg: string) => logger.http(msg.trimEnd()) },
+      skip: () => env.NODE_ENV === 'test',
+    },
+  ),
+);
+
+// ─── Swagger UI ───────────────────────────────────────────────────────────────
+app.use(
+  '/api/docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    customSiteTitle: 'Mini SaaS API Docs',
+    customCss: '.swagger-ui .topbar { display: none }',
+    swaggerOptions: {
+      persistAuthorization: true,
+      displayRequestDuration: true,
+    },
   }),
 );
 
-// ─── Health Check ─────────────────────────────────────────────────────────────
-app.get('/health', (_req: Request, res: Response) => {
-  res.status(200).json({
-    success: true,
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    version: process.env['npm_package_version'] ?? '1.0.0',
-  });
+// Raw OpenAPI spec endpoint — useful for client codegen tools
+app.get('/api/docs.json', (_req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
 });
 
-// ─── API Routes (registered per task) ────────────────────────────────────────
-// Routes will be registered here in future tasks:
+// ─── API Routes ───────────────────────────────────────────────────────────────
+
+// Rate limiting applied to all /api routes
+app.use('/api', globalLimiter);
+
+// Health check — GET /api/health
+app.use('/api/health', healthRouter);
+
+// Versioned routes — registered per task:
 // app.use('/api/v1/auth', authRouter);
 // app.use('/api/v1/workspaces', workspaceRouter);
 // app.use('/api/v1/boards', boardRouter);
 // app.use('/api/v1/documents', documentRouter);
 // app.use('/api/v1/chat', chatRouter);
 
-// ─── Swagger UI (registered per task) ────────────────────────────────────────
-// Will be configured in future tasks
-
 // ─── 404 Handler ──────────────────────────────────────────────────────────────
-app.use((_req: Request, res: Response) => {
-  res.status(404).json({
-    success: false,
-    message: 'Route not found.',
-    timestamp: new Date().toISOString(),
-  });
-});
+// Must be AFTER all routes
+app.use(notFoundHandler);
 
 // ─── Global Error Handler ──────────────────────────────────────────────────────
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-  logger.error('Unhandled error:', { message: err.message, stack: err.stack });
-  res.status(500).json({
-    success: false,
-    message: env.NODE_ENV === 'production' ? 'Internal server error.' : err.message,
-    timestamp: new Date().toISOString(),
-  });
-});
+// Must be LAST — 4 params signature is required by Express
+app.use(errorHandler);

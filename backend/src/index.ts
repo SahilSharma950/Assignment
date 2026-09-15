@@ -2,68 +2,79 @@ import 'express-async-errors';
 import { createServer } from 'http';
 
 import { app } from './app.js';
-import { connectDatabase } from './config/database.js';
-import { connectRedis, redisClient } from './config/redis.js';
-import { initializeSocket } from './sockets/index.js';
 import { logger } from './utils/logger.js';
 import { env } from './config/env.js';
 
-const PORT = env.PORT;
-
 /**
- * Bootstrap the application:
- * 1. Connect to MongoDB
- * 2. Connect to Redis
- * 3. Create HTTP server
- * 4. Attach Socket.io
- * 5. Start listening
+ * Server bootstrap — Task 2 (Express only).
+ *
+ * Bootstrap order for this task:
+ *  1. Create HTTP server
+ *  2. Start listening on configured PORT
+ *  3. Register graceful shutdown handlers
+ *
+ * Future tasks will add:
+ *  - Task 3: await connectDatabase()  → MongoDB
+ *  - Task 4: await connectRedis()     → Redis
+ *  - Task 5: initializeSocket()       → Socket.io
+ *  - Task 6: initializeQueues()       → BullMQ workers
  */
 async function bootstrap(): Promise<void> {
   try {
-    logger.info('🚀 Bootstrapping Mini SaaS Platform...');
-
-    await connectDatabase();
-    await connectRedis();
+    logger.info('🚀 Starting Mini SaaS Platform...');
+    logger.info(`   Environment : ${env.NODE_ENV}`);
+    logger.info(`   Port        : ${env.PORT}`);
+    logger.info(`   Log level   : ${env.LOG_LEVEL}`);
 
     const httpServer = createServer(app);
-    initializeSocket(httpServer);
 
-    httpServer.listen(PORT, () => {
-      logger.info(`✅ Server listening on port ${PORT} [${env.NODE_ENV}]`);
-      logger.info(`📖 Swagger UI → http://localhost:${PORT}/api/docs`);
+    httpServer.listen(env.PORT, () => {
+      logger.info('─'.repeat(50));
+      logger.info(`✅ Server is running!`);
+      logger.info(`   API         → http://localhost:${env.PORT}/api`);
+      logger.info(`   Health      → http://localhost:${env.PORT}/api/health`);
+      logger.info(`   Swagger     → http://localhost:${env.PORT}/api/docs`);
+      logger.info('─'.repeat(50));
     });
 
-    // ─── Graceful Shutdown ──────────────────────────────────────────────────
-    const shutdown = async (signal: string): Promise<void> => {
-      logger.warn(`Received ${signal} — shutting down gracefully...`);
+    // ─── Graceful Shutdown ────────────────────────────────────────────────────
+    const shutdown = (signal: string) => async (): Promise<void> => {
+      logger.warn(`\n⚠️  Received ${signal} — shutting down gracefully...`);
 
-      httpServer.close(async () => {
-        try {
-          await redisClient.quit();
-          logger.info('Redis connection closed.');
-          logger.info('Shutdown complete. Goodbye! 👋');
-          process.exit(0);
-        } catch (err) {
-          logger.error('Error during shutdown:', err);
+      // Stop accepting new connections
+      httpServer.close((err) => {
+        if (err) {
+          logger.error('Error closing HTTP server:', err);
           process.exit(1);
         }
+
+        logger.info('✅ HTTP server closed.');
+        logger.info('👋 Shutdown complete. Goodbye!');
+        process.exit(0);
       });
+
+      // Force shutdown after 30 seconds if graceful close stalls
+      setTimeout(() => {
+        logger.error('⏱️  Forced shutdown after timeout.');
+        process.exit(1);
+      }, 30_000).unref();
     };
 
-    process.on('SIGTERM', () => void shutdown('SIGTERM'));
-    process.on('SIGINT', () => void shutdown('SIGINT'));
+    process.on('SIGTERM', shutdown('SIGTERM'));
+    process.on('SIGINT', shutdown('SIGINT'));
 
-    process.on('unhandledRejection', (reason: unknown) => {
-      logger.error('Unhandled Promise Rejection:', reason);
+    // ─── Unhandled Error Guards ───────────────────────────────────────────────
+    process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {
+      logger.error('Unhandled Promise Rejection at:', promise, 'reason:', reason);
       process.exit(1);
     });
 
     process.on('uncaughtException', (error: Error) => {
-      logger.error('Uncaught Exception:', error);
+      logger.error('Uncaught Exception:', { message: error.message, stack: error.stack });
       process.exit(1);
     });
   } catch (error) {
-    logger.error('Failed to bootstrap application:', error);
+    logger.error('❌ Failed to start server:', error);
     process.exit(1);
   }
 }
