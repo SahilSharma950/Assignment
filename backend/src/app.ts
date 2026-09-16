@@ -22,6 +22,7 @@ import { listRoute } from './routes/list.route.js';
 import { taskRoute } from './routes/task.route.js';
 import commentRoute from './routes/comment.routes.js';
 import attachmentRoute from './routes/attachment.routes.js';
+import chatRoute from './routes/chat.routes.js';
 
 // ─── App Factory ───────────────────────────────────────────────────────────────
 export const app: Express = express();
@@ -142,11 +143,11 @@ app.use('/api/v1/lists', listRoute);
 app.use('/api/v1/tasks', taskRoute);
 app.use('/api/v1/comments', commentRoute);
 app.use('/api/v1/attachments', attachmentRoute);
+app.use('/api/v1/chat', chatRoute);
 
 // Serve static uploads
 app.use('/uploads', express.static(env.UPLOAD_DIR));
 // app.use('/api/v1/documents', documentRouter);
-// app.use('/api/v1/chat', chatRouter);
 
 // ─── 404 Handler ──────────────────────────────────────────────────────────────
 // Must be AFTER all routes

@@ -3,6 +3,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './slices/authSlice';
 import workspaceReducer from './slices/workspaceSlice';
 import boardReducer from './slices/boardSlice';
+import chatReducer from './slices/chatSlice';
 
 /**
  * Redux store configuration.
@@ -21,6 +22,7 @@ export const store = configureStore({
     auth: authReducer,
     workspace: workspaceReducer,
     board: boardReducer,
+    chat: chatReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

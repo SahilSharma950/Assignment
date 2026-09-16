@@ -6,6 +6,7 @@ import { logger } from '../utils/logger.js';
 import { socketService } from '../services/socket.service.js';
 import { workspaceService } from '../services/workspace.service.js';
 import { boardRepository } from '../repositories/board.repository.js';
+import { chatService } from '../services/chat.service.js';
 
 export function initializeSocket(httpServer: HttpServer) {
   const io = new Server(httpServer, {
@@ -66,6 +67,39 @@ export function initializeSocket(httpServer: HttpServer) {
       const roomName = `board:${boardId}`;
       socket.leave(roomName);
       logger.debug(`Socket ${socket.id} left room ${roomName}`);
+    });
+
+    // Handle joining a workspace room
+    socket.on('joinWorkspace', async (workspaceId: string, callback?: (response: { status: string; error?: string }) => void) => {
+      try {
+        await workspaceService.getWorkspaceById(workspaceId, socket.data.user.id);
+        const roomName = `workspace:${workspaceId}`;
+        socket.join(roomName);
+        logger.debug(`Socket ${socket.id} joined room ${roomName}`);
+        if (callback) callback({ status: 'success' });
+      } catch (error: any) {
+        logger.error(`Socket ${socket.id} failed to join workspace ${workspaceId}:`, error);
+        if (callback) callback({ status: 'error', error: error.message });
+      }
+    });
+
+    socket.on('leaveWorkspace', (workspaceId: string) => {
+      const roomName = `workspace:${workspaceId}`;
+      socket.leave(roomName);
+      logger.debug(`Socket ${socket.id} left room ${roomName}`);
+    });
+
+    // Handle sending a chat message
+    socket.on('sendMessage', async (payload: { workspaceId: string; content: string }, callback?: (response: { status: string; error?: string }) => void) => {
+      try {
+        const message = await chatService.createMessage(payload.workspaceId, payload.content, socket.data.user.id);
+        // Broadcast the new message to the workspace room
+        io.to(`workspace:${payload.workspaceId}`).emit('newMessage', message);
+        if (callback) callback({ status: 'success' });
+      } catch (error: any) {
+        logger.error(`Failed to send message in workspace ${payload.workspaceId}:`, error);
+        if (callback) callback({ status: 'error', error: error.message });
+      }
     });
 
     socket.on('disconnect', () => {
