@@ -10,6 +10,7 @@ import { store } from './store';
 import './styles/index.css';
 
 import { SocketProvider } from './contexts/SocketContext';
+import { AuthProvider } from './context/AuthContext';
 
 // ─── React Query Client ────────────────────────────────────────────────────────
 const queryClient = new QueryClient({
@@ -37,9 +38,11 @@ ReactDOM.createRoot(rootElement).render(
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <SocketProvider>
-            <App />
-          </SocketProvider>
+          <AuthProvider>
+            <SocketProvider>
+              <App />
+            </SocketProvider>
+          </AuthProvider>
         </BrowserRouter>
         {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} position="bottom" />}
       </QueryClientProvider>
