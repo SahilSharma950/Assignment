@@ -16,6 +16,23 @@ import { getHealth } from '../controllers/health.controller.js';
  */
 const healthRouter = Router();
 
+/**
+ * @swagger
+ * /health:
+ *   get:
+ *     tags:
+ *       - Health
+ *     summary: Health Check
+ *     description: Returns the health status of the server and its dependencies.
+ *     security: []
+ *     responses:
+ *       200:
+ *         description: Server is healthy
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/HealthResponse'
+ */
 healthRouter.get('/', getHealth);
 
 export default healthRouter;
