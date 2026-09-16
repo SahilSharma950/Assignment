@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import api from '../../services/api.js';
+import { apiClient } from '../../api/client';
 
 export interface ChatMessage {
   _id: string;
@@ -31,7 +31,7 @@ export const fetchChatHistory = createAsyncThunk(
   'chat/fetchHistory',
   async (workspaceId: string, { rejectWithValue }) => {
     try {
-      const response = await api.get(`/chat/workspace/${workspaceId}`);
+      const response = await apiClient.get(`/chat/workspace/${workspaceId}`);
       return response.data.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch chat history');

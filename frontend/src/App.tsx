@@ -11,6 +11,7 @@ import Register from './pages/auth/Register';
 import Dashboard from './pages/Dashboard';
 import Workspace from './pages/Workspace';
 import Board from './pages/Board';
+import Chat from './pages/Chat';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 
 const App: FC = () => {
@@ -27,7 +28,8 @@ const App: FC = () => {
       <Route path="/workspace/:workspaceId" element={<DashboardLayout><Workspace /></DashboardLayout>} />
       <Route path="/workspace/:workspaceId/board/:boardId" element={<DashboardLayout><Board /></DashboardLayout>} />
       <Route path="/workspace/:workspaceId/docs/:docId" element={<DashboardLayout><div>Document</div></DashboardLayout>} />
-      <Route path="/workspace/:workspaceId/chat/:channelId" element={<DashboardLayout><div>Chat</div></DashboardLayout>} />
+      <Route path="/workspace/:workspaceId/chat" element={<DashboardLayout><Chat /></DashboardLayout>} />
+      <Route path="/workspace/:workspaceId/chat/:channelId" element={<DashboardLayout><Chat /></DashboardLayout>} />
 
       {/* Error routes */}
       <Route path="/404" element={<div>404 Not Found</div>} />
