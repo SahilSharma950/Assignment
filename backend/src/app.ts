@@ -18,6 +18,7 @@ import healthRouter from './routes/health.route.js';
 import { authRoute } from './routes/auth.route.js';
 import { workspaceRoute } from './routes/workspace.route.js';
 import { boardRoute } from './routes/board.route.js';
+import { listRoute } from './routes/list.route.js';
 
 // ─── App Factory ───────────────────────────────────────────────────────────────
 export const app: Express = express();
@@ -134,6 +135,7 @@ app.use('/api/health', healthRouter);
 app.use('/api/v1/auth', authRoute);
 app.use('/api/v1/workspaces', workspaceRoute);
 app.use('/api/v1/boards', boardRoute);
+app.use('/api/v1/lists', listRoute);
 // app.use('/api/v1/documents', documentRouter);
 // app.use('/api/v1/chat', chatRouter);
 
