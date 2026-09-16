@@ -9,6 +9,7 @@ import Home from './pages/Home';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Dashboard from './pages/Dashboard';
+import { DashboardLayout } from './components/layout/DashboardLayout';
 
 const App: FC = () => {
   return (
@@ -19,12 +20,12 @@ const App: FC = () => {
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<div>Forgot Password</div>} />
 
-      {/* Protected routes */}
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/workspace/:workspaceId" element={<div>Workspace</div>} />
-      <Route path="/workspace/:workspaceId/board/:boardId" element={<div>Board</div>} />
-      <Route path="/workspace/:workspaceId/docs/:docId" element={<div>Document</div>} />
-      <Route path="/workspace/:workspaceId/chat/:channelId" element={<div>Chat</div>} />
+      {/* Protected routes wrapped in Dashboard Layout */}
+      <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
+      <Route path="/workspace/:workspaceId" element={<DashboardLayout><div>Workspace</div></DashboardLayout>} />
+      <Route path="/workspace/:workspaceId/board/:boardId" element={<DashboardLayout><div>Board</div></DashboardLayout>} />
+      <Route path="/workspace/:workspaceId/docs/:docId" element={<DashboardLayout><div>Document</div></DashboardLayout>} />
+      <Route path="/workspace/:workspaceId/chat/:channelId" element={<DashboardLayout><div>Chat</div></DashboardLayout>} />
 
       {/* Error routes */}
       <Route path="/404" element={<div>404 Not Found</div>} />
