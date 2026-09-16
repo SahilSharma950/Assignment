@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { authService } from '../services/auth.service.js';
+import { auditLogService } from '../services/auditLog.service.js';
 import { sendSuccess } from '../utils/httpResponse.js';
 import { env } from '../config/env.js';
 import { UnauthorizedError } from '../utils/AppError.js';
@@ -56,6 +57,14 @@ export const login = async (req: Request, res: Response) => {
   const { user, tokens } = await authService.login(data);
 
   setRefreshTokenCookie(res, tokens.refreshToken);
+
+  auditLogService.logAction(
+    user.id.toString(),
+    'USER_LOGIN',
+    user.id.toString(),
+    'User',
+    { ip: req.ip, userAgent: req.headers['user-agent'] }
+  );
 
   sendSuccess(
     res,

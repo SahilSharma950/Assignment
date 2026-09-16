@@ -3,6 +3,7 @@ import { listService } from './list.service.js';
 import { boardService } from './board.service.js';
 import { workspaceService } from './workspace.service.js';
 import { notificationService } from './notification.service.js';
+import { auditLogService } from './auditLog.service.js';
 import { NotFoundError, ForbiddenError } from '../utils/AppError.js';
 import { ITask } from '../models/task.model.js';
 import { socketService } from './socket.service.js';
@@ -137,6 +138,14 @@ class TaskService {
     } finally {
       await session.endSession();
     }
+
+    auditLogService.logAction(
+      userId,
+      'TASK_UPDATED',
+      taskId,
+      'Task',
+      { changes: data }
+    );
 
     socketService.broadcastTaskUpdated(board.id, updatedTask!);
     return updatedTask!;

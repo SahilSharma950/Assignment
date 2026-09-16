@@ -1,6 +1,7 @@
 import { workspaceRepository } from '../repositories/workspace.repository.js';
 import { ForbiddenError, NotFoundError } from '../utils/AppError.js';
 import { IWorkspace } from '../models/workspace.model.js';
+import { auditLogService } from './auditLog.service.js';
 import mongoose from 'mongoose';
 
 export interface CreateWorkspaceDTO {
@@ -27,7 +28,17 @@ class WorkspaceService {
     };
     if (data.description) createData.description = data.description;
 
-    return workspaceRepository.create(createData);
+    const workspace = await workspaceRepository.create(createData);
+    
+    auditLogService.logAction(
+      ownerId,
+      'WORKSPACE_CREATED',
+      workspace.id,
+      'Workspace',
+      { name: data.name }
+    );
+    
+    return workspace;
   }
 
   /**
@@ -72,6 +83,15 @@ class WorkspaceService {
     }
 
     const updatedWorkspace = await workspaceRepository.update(workspaceId, data);
+
+    auditLogService.logAction(
+      userId,
+      'WORKSPACE_UPDATED',
+      workspaceId,
+      'Workspace',
+      { changes: data }
+    );
+
     return updatedWorkspace!;
   }
 
@@ -90,6 +110,14 @@ class WorkspaceService {
     }
 
     await workspaceRepository.delete(workspaceId);
+
+    auditLogService.logAction(
+      userId,
+      'WORKSPACE_DELETED',
+      workspaceId,
+      'Workspace',
+      { name: workspace.name }
+    );
   }
 }
 
