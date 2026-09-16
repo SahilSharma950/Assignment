@@ -38,11 +38,13 @@ ReactDOM.createRoot(rootElement).render(
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <AuthProvider>
-            <SocketProvider>
-              <App />
-            </SocketProvider>
-          </AuthProvider>
+          <ThemeProvider>
+            <AuthProvider>
+              <SocketProvider>
+                <App />
+              </SocketProvider>
+            </AuthProvider>
+          </ThemeProvider>
         </BrowserRouter>
         {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} position="bottom" />}
       </QueryClientProvider>
