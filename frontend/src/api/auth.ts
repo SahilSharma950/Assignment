@@ -26,5 +26,10 @@ export const authApi = {
     return response.data;
   },
   
-  // Future methods: register, logout, refreshToken
+  register: async (data: any): Promise<AuthResponse> => {
+    const response = await apiClient.post<AuthResponse>('/auth/register', data);
+    return response.data;
+  },
+  
+  // Future methods: logout, refreshToken
 };
