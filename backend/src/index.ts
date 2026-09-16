@@ -5,6 +5,7 @@ import { app } from './app.js';
 import { logger } from './utils/logger.js';
 import { env } from './config/env.js';
 import { connectDatabase, disconnectDatabase } from './config/db.js';
+import { connectRedis, redisClient } from './config/redis.js';
 import { initializeSocket } from './config/socket.js';
 
 /**
@@ -17,6 +18,7 @@ async function bootstrap(): Promise<void> {
     logger.info(`   Port        : ${env.PORT}`);
     logger.info(`   Log level   : ${env.LOG_LEVEL}`);
 
+    await connectRedis();
     await connectDatabase();
 
     const httpServer = createServer(app);
@@ -43,6 +45,7 @@ async function bootstrap(): Promise<void> {
         }
 
         await disconnectDatabase();
+        await redisClient.quit();
         logger.info('✅ HTTP server closed.');
         logger.info('👋 Shutdown complete. Goodbye!');
         process.exit(0);

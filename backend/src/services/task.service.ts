@@ -178,7 +178,10 @@ class TaskService {
     const { workspace, board } = await this.validateListAccessAndGetWorkspace(task.list.toString(), userId);
 
     // Validate that the assignee is actually a member of the workspace
-    const isAssigneeMember = workspace.members.some((m) => m.toString() === assigneeId) || workspace.owner.toString() === assigneeId;
+    const ownerIdStr = typeof workspace.owner === 'object' && workspace.owner._id 
+      ? workspace.owner._id.toString() 
+      : workspace.owner.toString();
+    const isAssigneeMember = workspace.members.some((m) => m.toString() === assigneeId) || ownerIdStr === assigneeId;
     if (!isAssigneeMember) {
       throw new ForbiddenError('Assignee must be a member of the workspace');
     }

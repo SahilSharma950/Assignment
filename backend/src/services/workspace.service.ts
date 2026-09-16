@@ -2,6 +2,7 @@ import { workspaceRepository } from '../repositories/workspace.repository.js';
 import { ForbiddenError, NotFoundError } from '../utils/AppError.js';
 import { IWorkspace } from '../models/workspace.model.js';
 import { auditLogService } from './auditLog.service.js';
+import { cacheService } from './cache.service.js';
 import mongoose from 'mongoose';
 
 export interface CreateWorkspaceDTO {
@@ -52,13 +53,22 @@ class WorkspaceService {
    * Retrieves a specific workspace, ensuring the user has access.
    */
   async getWorkspaceById(workspaceId: string, userId: string): Promise<IWorkspace> {
-    const workspace = await workspaceRepository.findById(workspaceId);
+    const cacheKey = `workspace:${workspaceId}`;
+    let workspace = await cacheService.get<IWorkspace>(cacheKey);
 
     if (!workspace) {
-      throw new NotFoundError('Workspace not found');
+      workspace = await workspaceRepository.findById(workspaceId);
+      if (!workspace) {
+        throw new NotFoundError('Workspace not found');
+      }
+      await cacheService.set(cacheKey, workspace, 300); // 5 minutes
     }
 
-    const isOwner = workspace.owner._id.toString() === userId;
+    const ownerIdStr = typeof workspace.owner === 'object' && workspace.owner._id 
+      ? workspace.owner._id.toString() 
+      : workspace.owner.toString();
+
+    const isOwner = ownerIdStr === userId;
     const isMember = workspace.members.some((memberId) => memberId.toString() === userId);
 
     if (!isOwner && !isMember) {
@@ -83,6 +93,8 @@ class WorkspaceService {
     }
 
     const updatedWorkspace = await workspaceRepository.update(workspaceId, data);
+    
+    await cacheService.del(`workspace:${workspaceId}`);
 
     auditLogService.logAction(
       userId,
@@ -110,6 +122,8 @@ class WorkspaceService {
     }
 
     await workspaceRepository.delete(workspaceId);
+    
+    await cacheService.del(`workspace:${workspaceId}`);
 
     auditLogService.logAction(
       userId,

@@ -3,6 +3,7 @@ import { listRepository } from '../repositories/list.repository.js';
 import { workspaceService } from './workspace.service.js';
 import { ForbiddenError, NotFoundError } from '../utils/AppError.js';
 import { IBoard } from '../models/board.model.js';
+import { cacheService } from './cache.service.js';
 import mongoose from 'mongoose';
 
 export interface CreateBoardDTO {
@@ -63,10 +64,15 @@ class BoardService {
    * Retrieves a specific board after verifying access to its parent workspace.
    */
   async getBoardById(boardId: string, userId: string): Promise<IBoard> {
-    const board = await boardRepository.findById(boardId);
+    const cacheKey = `board:${boardId}`;
+    let board = await cacheService.get<IBoard>(cacheKey);
 
     if (!board) {
-      throw new NotFoundError('Board not found');
+      board = await boardRepository.findById(boardId);
+      if (!board) {
+        throw new NotFoundError('Board not found');
+      }
+      await cacheService.set(cacheKey, board, 300); // 5 minutes cache
     }
 
     // Ensure the user has access to the workspace this board belongs to
@@ -89,14 +95,24 @@ class BoardService {
     // Get workspace to check if user is the owner of the workspace
     const workspace = await workspaceService.getWorkspaceById(board.workspace.toString(), userId);
 
-    const isBoardCreator = board.createdBy._id.toString() === userId;
-    const isWorkspaceOwner = workspace.owner._id.toString() === userId;
+    const creatorIdStr = typeof board.createdBy === 'object' && board.createdBy._id 
+      ? board.createdBy._id.toString() 
+      : board.createdBy.toString();
+    const isBoardCreator = creatorIdStr === userId;
+    
+    const workspaceOwnerIdStr = typeof workspace.owner === 'object' && workspace.owner._id 
+      ? workspace.owner._id.toString() 
+      : workspace.owner.toString();
+    const isWorkspaceOwner = workspaceOwnerIdStr === userId;
 
     if (!isBoardCreator && !isWorkspaceOwner) {
       throw new ForbiddenError('Only the board creator or workspace owner can update this board');
     }
 
     const updatedBoard = await boardRepository.update(boardId, data);
+    
+    await cacheService.del(`board:${boardId}`);
+    
     return updatedBoard!;
   }
 
@@ -114,14 +130,22 @@ class BoardService {
     // Get workspace to check if user is the owner of the workspace
     const workspace = await workspaceService.getWorkspaceById(board.workspace.toString(), userId);
 
-    const isBoardCreator = board.createdBy._id.toString() === userId;
-    const isWorkspaceOwner = workspace.owner._id.toString() === userId;
+    const creatorIdStr = typeof board.createdBy === 'object' && board.createdBy._id 
+      ? board.createdBy._id.toString() 
+      : board.createdBy.toString();
+    const isBoardCreator = creatorIdStr === userId;
+    
+    const workspaceOwnerIdStr = typeof workspace.owner === 'object' && workspace.owner._id 
+      ? workspace.owner._id.toString() 
+      : workspace.owner.toString();
+    const isWorkspaceOwner = workspaceOwnerIdStr === userId;
 
     if (!isBoardCreator && !isWorkspaceOwner) {
       throw new ForbiddenError('Only the board creator or workspace owner can delete this board');
     }
 
     await boardRepository.delete(boardId);
+    await cacheService.del(`board:${boardId}`);
   }
 }
 
