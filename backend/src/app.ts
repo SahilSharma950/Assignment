@@ -25,6 +25,7 @@ import attachmentRoute from './routes/attachment.routes.js';
 import chatRoute from './routes/chat.routes.js';
 import notificationRoute from './routes/notification.routes.js';
 import searchRoute from './routes/search.routes.js';
+import analyticsRoute from './routes/analytics.routes.js';
 
 // ─── App Factory ───────────────────────────────────────────────────────────────
 export const app: Express = express();
@@ -148,6 +149,7 @@ app.use('/api/v1/attachments', attachmentRoute);
 app.use('/api/v1/chat', chatRoute);
 app.use('/api/v1/notifications', notificationRoute);
 app.use('/api/v1/search', searchRoute);
+app.use('/api/v1/analytics', analyticsRoute);
 
 // Serve static uploads
 app.use('/uploads', express.static(env.UPLOAD_DIR));
