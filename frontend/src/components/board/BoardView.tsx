@@ -16,8 +16,9 @@ import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { ListColumn } from './ListColumn';
 import { TaskCard } from './TaskCard';
 import { RootState, AppDispatch } from '../../store';
-import { fetchBoardData, moveTask, optimisticMoveTask } from '../../store/slices/boardSlice';
+import { fetchBoardData, moveTask, optimisticMoveTask, taskCreatedEvent, taskUpdatedEvent, taskDeletedEvent } from '../../store/slices/boardSlice';
 import type { Task } from '../../types/board';
+import { useSocket } from '../../contexts/SocketContext';
 
 interface BoardViewProps {
   boardId: string;
@@ -27,10 +28,32 @@ export const BoardView = ({ boardId }: BoardViewProps) => {
   const dispatch = useDispatch<AppDispatch>();
   const { lists, tasks, isLoading } = useSelector((state: RootState) => state.board);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const { socket, isConnected } = useSocket();
 
   useEffect(() => {
     dispatch(fetchBoardData(boardId));
   }, [boardId, dispatch]);
+
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+
+    socket.emit('joinBoard', boardId);
+
+    const handleTaskCreated = (task: Task) => dispatch(taskCreatedEvent(task));
+    const handleTaskUpdated = (task: Task) => dispatch(taskUpdatedEvent(task));
+    const handleTaskDeleted = (payload: { taskId: string; listId: string }) => dispatch(taskDeletedEvent(payload));
+
+    socket.on('taskCreated', handleTaskCreated);
+    socket.on('taskUpdated', handleTaskUpdated);
+    socket.on('taskDeleted', handleTaskDeleted);
+
+    return () => {
+      socket.emit('leaveBoard', boardId);
+      socket.off('taskCreated', handleTaskCreated);
+      socket.off('taskUpdated', handleTaskUpdated);
+      socket.off('taskDeleted', handleTaskDeleted);
+    };
+  }, [socket, isConnected, boardId, dispatch]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {

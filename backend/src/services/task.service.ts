@@ -4,6 +4,7 @@ import { boardService } from './board.service.js';
 import { workspaceService } from './workspace.service.js';
 import { NotFoundError, ForbiddenError } from '../utils/AppError.js';
 import { ITask } from '../models/task.model.js';
+import { socketService } from './socket.service.js';
 import mongoose from 'mongoose';
 
 export interface CreateTaskDTO {
@@ -29,14 +30,14 @@ class TaskService {
     const list = await listService.getListById(listId, userId);
     const board = await boardService.getBoardById(list.board.toString(), userId);
     const workspace = await workspaceService.getWorkspaceById(board.workspace.toString(), userId);
-    return workspace;
+    return { workspace, board, list };
   }
 
   /**
    * Creates a new task in a list.
    */
   async createTask(data: CreateTaskDTO, userId: string): Promise<ITask> {
-    await this.validateListAccessAndGetWorkspace(data.listId, userId);
+    const { board } = await this.validateListAccessAndGetWorkspace(data.listId, userId);
 
     const maxOrder = await taskRepository.getMaxOrder(data.listId);
 
@@ -48,7 +49,9 @@ class TaskService {
     };
     if (data.description) createData.description = data.description;
 
-    return taskRepository.create(createData);
+    const task = await taskRepository.create(createData);
+    socketService.broadcastTaskCreated(board.id, task);
+    return task;
   }
 
   /**
@@ -84,7 +87,7 @@ class TaskService {
     }
 
     // Ensure access to current list
-    await this.validateListAccessAndGetWorkspace(task.list.toString(), userId);
+    const { board } = await this.validateListAccessAndGetWorkspace(task.list.toString(), userId);
 
     const isMovingLists = data.listId !== undefined && data.listId !== task.list.toString();
     const isChangingOrder = data.order !== undefined && data.order !== task.order;
@@ -97,6 +100,7 @@ class TaskService {
     // but for simplicity and robustness we can wrap the update.
     if (!isMovingLists && !isChangingOrder) {
       const updatedTask = await taskRepository.update(taskId, data);
+      socketService.broadcastTaskUpdated(board.id, updatedTask!);
       return updatedTask!;
     }
 
@@ -133,6 +137,7 @@ class TaskService {
       await session.endSession();
     }
 
+    socketService.broadcastTaskUpdated(board.id, updatedTask!);
     return updatedTask!;
   }
 
@@ -145,9 +150,10 @@ class TaskService {
       throw new NotFoundError('Task not found');
     }
 
-    await this.validateListAccessAndGetWorkspace(task.list.toString(), userId);
+    const { board } = await this.validateListAccessAndGetWorkspace(task.list.toString(), userId);
 
     await taskRepository.delete(taskId);
+    socketService.broadcastTaskDeleted(board.id, taskId, task.list.toString());
   }
 
   /**
@@ -159,7 +165,7 @@ class TaskService {
       throw new NotFoundError('Task not found');
     }
 
-    const workspace = await this.validateListAccessAndGetWorkspace(task.list.toString(), userId);
+    const { workspace, board } = await this.validateListAccessAndGetWorkspace(task.list.toString(), userId);
 
     // Validate that the assignee is actually a member of the workspace
     const isAssigneeMember = workspace.members.some((m) => m.toString() === assigneeId) || workspace.owner.toString() === assigneeId;
@@ -168,6 +174,7 @@ class TaskService {
     }
 
     const updatedTask = await taskRepository.addAssignee(taskId, assigneeId);
+    socketService.broadcastTaskUpdated(board.id, updatedTask!);
     return updatedTask!;
   }
 
@@ -180,9 +187,10 @@ class TaskService {
       throw new NotFoundError('Task not found');
     }
 
-    await this.validateListAccessAndGetWorkspace(task.list.toString(), userId);
+    const { board } = await this.validateListAccessAndGetWorkspace(task.list.toString(), userId);
 
     const updatedTask = await taskRepository.removeAssignee(taskId, assigneeId);
+    socketService.broadcastTaskUpdated(board.id, updatedTask!);
     return updatedTask!;
   }
 }

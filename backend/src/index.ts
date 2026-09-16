@@ -5,20 +5,10 @@ import { app } from './app.js';
 import { logger } from './utils/logger.js';
 import { env } from './config/env.js';
 import { connectDatabase, disconnectDatabase } from './config/db.js';
+import { initializeSocket } from './config/socket.js';
 
 /**
- * Server bootstrap — Task 2 (Express only).
- *
- * Bootstrap order for this task:
- *  1. Create HTTP server
- *  2. Start listening on configured PORT
- *  3. Register graceful shutdown handlers
- *
- * Future tasks will add:
- *  - Task 3: await connectDatabase()  → MongoDB
- *  - Task 4: await connectRedis()     → Redis
- *  - Task 5: initializeSocket()       → Socket.io
- *  - Task 6: initializeQueues()       → BullMQ workers
+ * Server bootstrap
  */
 async function bootstrap(): Promise<void> {
   try {
@@ -30,6 +20,7 @@ async function bootstrap(): Promise<void> {
     await connectDatabase();
 
     const httpServer = createServer(app);
+    initializeSocket(httpServer);
 
     httpServer.listen(env.PORT, () => {
       logger.info('─'.repeat(50));

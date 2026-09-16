@@ -116,10 +116,56 @@ const boardSlice = createSlice({
     
     // Fallback rollback
     revertMoveTask: (state, action: PayloadAction<MoveTaskPayload>) => {
-      // To properly revert, we would need the ORIGINAL order and listId. 
-      // For a robust implementation, the payload should contain original state.
-      // But a simple refresh or partial revert can be placed here.
-      // Easiest is to force a re-fetch, or strictly invert the move.
+      // Stub
+    },
+
+    // ─── Real-time Event Handlers ─────────────────────────────────────────────
+    taskCreatedEvent: (state, action: PayloadAction<Task>) => {
+      const task = action.payload;
+      if (!state.tasks[task.list]) {
+        state.tasks[task.list] = [];
+      }
+      // Only push if it doesn't already exist (avoid dupes from creator's own emit)
+      if (!state.tasks[task.list].find(t => t._id === task._id)) {
+        state.tasks[task.list].push(task);
+        state.tasks[task.list].sort((a, b) => a.order - b.order);
+      }
+    },
+    taskUpdatedEvent: (state, action: PayloadAction<Task>) => {
+      const updatedTask = action.payload;
+      
+      // If we don't know the list, ignore
+      if (!state.tasks[updatedTask.list]) {
+        state.tasks[updatedTask.list] = [];
+      }
+
+      // Check if it exists in the *current* target list
+      const targetListIndex = state.tasks[updatedTask.list].findIndex(t => t._id === updatedTask._id);
+      
+      if (targetListIndex !== -1) {
+        // It's already in the target list, just update it inline
+        state.tasks[updatedTask.list][targetListIndex] = updatedTask;
+        state.tasks[updatedTask.list].sort((a, b) => a.order - b.order);
+      } else {
+        // It's not in the target list, meaning it was MOVED from another list.
+        // We need to find and remove it from the old list.
+        for (const [listId, tasks] of Object.entries(state.tasks)) {
+          const oldIndex = tasks.findIndex(t => t._id === updatedTask._id);
+          if (oldIndex !== -1) {
+            tasks.splice(oldIndex, 1);
+            break;
+          }
+        }
+        // Insert into the new list
+        state.tasks[updatedTask.list].push(updatedTask);
+        state.tasks[updatedTask.list].sort((a, b) => a.order - b.order);
+      }
+    },
+    taskDeletedEvent: (state, action: PayloadAction<{ taskId: string, listId: string }>) => {
+      const { taskId, listId } = action.payload;
+      if (state.tasks[listId]) {
+        state.tasks[listId] = state.tasks[listId].filter(t => t._id !== taskId);
+      }
     }
   },
   extraReducers: (builder) => {
@@ -141,5 +187,5 @@ const boardSlice = createSlice({
   }
 });
 
-export const { optimisticMoveTask, revertMoveTask } = boardSlice.actions;
+export const { optimisticMoveTask, revertMoveTask, taskCreatedEvent, taskUpdatedEvent, taskDeletedEvent } = boardSlice.actions;
 export default boardSlice.reducer;
