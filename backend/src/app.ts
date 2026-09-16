@@ -20,6 +20,7 @@ import { workspaceRoute } from './routes/workspace.route.js';
 import { boardRoute } from './routes/board.route.js';
 import { listRoute } from './routes/list.route.js';
 import { taskRoute } from './routes/task.route.js';
+import commentRoute from './routes/comment.routes.js';
 
 // ─── App Factory ───────────────────────────────────────────────────────────────
 export const app: Express = express();
@@ -138,6 +139,7 @@ app.use('/api/v1/workspaces', workspaceRoute);
 app.use('/api/v1/boards', boardRoute);
 app.use('/api/v1/lists', listRoute);
 app.use('/api/v1/tasks', taskRoute);
+app.use('/api/v1/comments', commentRoute);
 // app.use('/api/v1/documents', documentRouter);
 // app.use('/api/v1/chat', chatRouter);
 
