@@ -18,10 +18,21 @@ class BoardRepository {
   }
 
   /**
-   * Finds all boards within a specific workspace.
+   * Finds all boards within a specific workspace with pagination.
    */
-  async findByWorkspace(workspaceId: string | ObjectId): Promise<IBoard[]> {
-    return Board.find({ workspace: workspaceId }).populate('createdBy', 'name email avatar');
+  async findByWorkspace(workspaceId: string | ObjectId, limit: number = 10, offset: number = 0): Promise<IBoard[]> {
+    return Board.find({ workspace: workspaceId })
+      .populate('createdBy', 'name email avatar')
+      .skip(offset)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+  }
+
+  /**
+   * Counts the total number of boards within a workspace.
+   */
+  async countByWorkspace(workspaceId: string | ObjectId): Promise<number> {
+    return Board.countDocuments({ workspace: workspaceId });
   }
 
   /**

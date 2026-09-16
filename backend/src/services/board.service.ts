@@ -51,13 +51,28 @@ class BoardService {
   }
 
   /**
-   * Retrieves all boards for a workspace after verifying workspace access.
+   * Retrieves paginated boards for a workspace after verifying workspace access.
    */
-  async getBoardsByWorkspace(workspaceId: string, userId: string): Promise<IBoard[]> {
+  async getBoardsByWorkspace(workspaceId: string, userId: string, page: number = 1, limit: number = 10) {
     // Throws if user is not a member or owner of the workspace
     await workspaceService.getWorkspaceById(workspaceId, userId);
 
-    return boardRepository.findByWorkspace(workspaceId);
+    const offset = (page - 1) * limit;
+    
+    const [boards, total] = await Promise.all([
+      boardRepository.findByWorkspace(workspaceId, limit, offset),
+      boardRepository.countByWorkspace(workspaceId),
+    ]);
+    
+    return {
+      data: boards,
+      pagination: {
+        total,
+        page,
+        limit,
+        hasMore: offset + boards.length < total,
+      }
+    };
   }
 
   /**

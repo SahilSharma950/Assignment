@@ -9,6 +9,7 @@ import Home from './pages/Home';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Dashboard from './pages/Dashboard';
+import Workspace from './pages/Workspace';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 
 const App: FC = () => {
@@ -22,7 +23,7 @@ const App: FC = () => {
 
       {/* Protected routes wrapped in Dashboard Layout */}
       <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
-      <Route path="/workspace/:workspaceId" element={<DashboardLayout><div>Workspace</div></DashboardLayout>} />
+      <Route path="/workspace/:workspaceId" element={<DashboardLayout><Workspace /></DashboardLayout>} />
       <Route path="/workspace/:workspaceId/board/:boardId" element={<DashboardLayout><div>Board</div></DashboardLayout>} />
       <Route path="/workspace/:workspaceId/docs/:docId" element={<DashboardLayout><div>Document</div></DashboardLayout>} />
       <Route path="/workspace/:workspaceId/chat/:channelId" element={<DashboardLayout><div>Chat</div></DashboardLayout>} />

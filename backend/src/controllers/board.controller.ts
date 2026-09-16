@@ -35,9 +35,12 @@ export const create = async (req: Request, res: Response) => {
 export const getByWorkspace = async (req: Request, res: Response) => {
   const workspaceId = req.params.workspaceId as string;
   const userId = req.user!.id;
+  
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 10;
 
-  const boards = await boardService.getBoardsByWorkspace(workspaceId, userId);
-  sendSuccess(res, boards, 'Boards retrieved successfully');
+  const result = await boardService.getBoardsByWorkspace(workspaceId, userId, page, limit);
+  sendSuccess(res, result, 'Boards retrieved successfully');
 };
 
 export const getOne = async (req: Request, res: Response) => {
