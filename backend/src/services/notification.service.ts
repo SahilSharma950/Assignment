@@ -1,7 +1,7 @@
 import { notificationRepository } from '../repositories/notification.repository.js';
 import { INotification } from '../models/notification.model.js';
 import { NotFoundError } from '../utils/AppError.js';
-import { socketService } from './socket.service.js';
+import { notificationQueue } from '../jobs/queues.js';
 
 class NotificationService {
   /**
@@ -34,8 +34,13 @@ class NotificationService {
    */
   async pushNotification(data: Partial<INotification>): Promise<INotification> {
     const notification = await notificationRepository.create(data);
-    // Broadcast immediately to the specific user's private socket room
-    socketService.emitToUser(notification.recipient.toString(), 'notification', notification);
+    
+    // Dispatch to background queue for WebSocket delivery
+    await notificationQueue.add('push', {
+      recipientId: notification.recipient.toString(),
+      notification,
+    });
+    
     return notification;
   }
 }

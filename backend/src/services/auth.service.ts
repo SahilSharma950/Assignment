@@ -4,6 +4,7 @@ import { generateTokens, AuthTokens } from '../utils/jwt.js';
 import { tokenService } from './token.service.js';
 import { verifyRefreshToken } from '../utils/jwt.js';
 import { IUser } from '../models/user.model.js';
+import { emailQueue } from '../jobs/queues.js';
 
 export interface RegisterDTO {
   name: string;
@@ -48,6 +49,13 @@ class AuthService {
 
     // Save refresh token securely in Redis
     await tokenService.saveRefreshToken(user.id, tokens.refreshToken);
+
+    // Enqueue welcome email asynchronously
+    await emailQueue.add('welcome', {
+      to: user.email,
+      subject: 'Welcome to Mini SaaS Platform!',
+      body: `Hi ${user.name},\n\nWe are thrilled to have you on board. Let's get started!`,
+    });
 
     return { user, tokens };
   }
