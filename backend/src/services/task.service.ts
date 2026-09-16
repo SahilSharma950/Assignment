@@ -75,8 +75,7 @@ class TaskService {
   }
 
   /**
-   * Updates a task.
-   * Workspace members can update tasks to facilitate collaboration.
+   * Updates a task, supporting atomic reordering and list movement via transactions.
    */
   async updateTask(taskId: string, data: UpdateTaskDTO, userId: string): Promise<ITask> {
     const task = await taskRepository.findById(taskId);
@@ -87,14 +86,53 @@ class TaskService {
     // Ensure access to current list
     await this.validateListAccessAndGetWorkspace(task.list.toString(), userId);
 
-    // If moving to a new list, ensure access to the target list as well
-    if (data.listId && data.listId !== task.list.toString()) {
-      await this.validateListAccessAndGetWorkspace(data.listId, userId);
-      // Optional: recalculate target list maxOrder if order isn't provided, 
-      // but usually the frontend provides the new order.
+    const isMovingLists = data.listId !== undefined && data.listId !== task.list.toString();
+    const isChangingOrder = data.order !== undefined && data.order !== task.order;
+
+    if (isMovingLists) {
+      await this.validateListAccessAndGetWorkspace(data.listId as string, userId);
     }
 
-    const updatedTask = await taskRepository.update(taskId, data);
+    // If we're not moving lists or changing order, no transaction is strictly necessary,
+    // but for simplicity and robustness we can wrap the update.
+    if (!isMovingLists && !isChangingOrder) {
+      const updatedTask = await taskRepository.update(taskId, data);
+      return updatedTask!;
+    }
+
+    const session = await mongoose.startSession();
+    let updatedTask: ITask | null = null;
+
+    try {
+      await session.withTransaction(async () => {
+        const sourceListId = task.list.toString();
+        const destListId = data.listId || sourceListId;
+        const newOrder = data.order !== undefined ? data.order : await taskRepository.getMaxOrder(destListId, session) + 1;
+
+        if (isMovingLists) {
+          // 1. Shift tasks in source list UP to close the gap
+          await taskRepository.shiftOrders(sourceListId, task.order + 1, null, -1, session);
+          
+          // 2. Shift tasks in dest list DOWN to make room
+          await taskRepository.shiftOrders(destListId, newOrder, null, 1, session);
+        } else if (isChangingOrder) {
+          // Moving within the same list
+          if (newOrder > task.order) {
+            // Moved down: Shift intermediate tasks UP
+            await taskRepository.shiftOrders(sourceListId, task.order + 1, newOrder, -1, session);
+          } else {
+            // Moved up: Shift intermediate tasks DOWN
+            await taskRepository.shiftOrders(sourceListId, newOrder, task.order - 1, 1, session);
+          }
+        }
+
+        // 3. Update the task itself
+        updatedTask = await taskRepository.update(taskId, { ...data, order: newOrder }, session);
+      });
+    } finally {
+      await session.endSession();
+    }
+
     return updatedTask!;
   }
 
