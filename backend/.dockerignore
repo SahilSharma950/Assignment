@@ -1,0 +1,12 @@
+node_modules
+dist
+.env
+.git
+.github
+tests
+coverage
+logs
+uploads
+npm-debug.log
+yarn-error.log
+jest.config.cjs

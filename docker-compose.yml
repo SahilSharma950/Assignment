@@ -1,7 +1,6 @@
 version: '3.9'
 
 services:
-  # ─── MongoDB ────────────────────────────────────────────────────────────────
   mongodb:
     image: mongo:7.0
     container_name: mini-saas-mongodb
@@ -24,7 +23,6 @@ services:
       retries: 5
       start_period: 30s
 
-  # ─── Redis ──────────────────────────────────────────────────────────────────
   redis:
     image: redis:7.2-alpine
     container_name: mini-saas-redis
@@ -42,27 +40,24 @@ services:
       timeout: 5s
       retries: 5
 
-  # ─── Backend ────────────────────────────────────────────────────────────────
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      target: development
+      target: production
     container_name: mini-saas-backend
     restart: unless-stopped
     ports:
       - '5000:5000'
-    env_file:
-      - ./backend/.env
     environment:
       MONGODB_URI: mongodb://admin:password@mongodb:27017/mini-saas?authSource=admin
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      NODE_ENV: production
+      PORT: 5000
     volumes:
-      - ./backend/src:/app/src
       - ./backend/uploads:/app/uploads
       - ./backend/logs:/app/logs
-      - /app/node_modules
     depends_on:
       mongodb:
         condition: service_healthy
@@ -71,34 +66,26 @@ services:
     networks:
       - mini-saas-network
 
-  # ─── Frontend ───────────────────────────────────────────────────────────────
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      target: development
+      target: production
     container_name: mini-saas-frontend
     restart: unless-stopped
     ports:
-      - '3000:3000'
-    env_file:
-      - ./frontend/.env.local
-    volumes:
-      - ./frontend/src:/app/src
-      - /app/node_modules
+      - '3000:80'
     depends_on:
       - backend
     networks:
       - mini-saas-network
 
-# ─── Volumes ────────────────────────────────────────────────────────────────
 volumes:
   mongodb_data:
     driver: local
   redis_data:
     driver: local
 
-# ─── Networks ───────────────────────────────────────────────────────────────
 networks:
   mini-saas-network:
     driver: bridge
