@@ -1,4 +1,5 @@
 import { boardRepository } from '../repositories/board.repository.js';
+import { listRepository } from '../repositories/list.repository.js';
 import { workspaceService } from './workspace.service.js';
 import { ForbiddenError, NotFoundError } from '../utils/AppError.js';
 import { IBoard } from '../models/board.model.js';
@@ -18,6 +19,7 @@ export interface UpdateBoardDTO {
 class BoardService {
   /**
    * Creates a new board after verifying workspace access.
+   * Auto-creates default lists (To Do, Doing, Done) to establish task status movement.
    */
   async createBoard(data: CreateBoardDTO, userId: string): Promise<IBoard> {
     // Throws if user is not a member or owner of the workspace
@@ -30,7 +32,21 @@ class BoardService {
     };
     if (data.description) createData.description = data.description;
 
-    return boardRepository.create(createData);
+    const board = await boardRepository.create(createData);
+
+    // Auto-create default lists for status movement (Task 14)
+    const defaultLists = ['To Do', 'Doing', 'Done'];
+    let order = 0;
+    for (const listName of defaultLists) {
+      await listRepository.create({
+        name: listName,
+        board: board._id as mongoose.Types.ObjectId,
+        order: order++,
+        createdBy: new mongoose.Types.ObjectId(userId),
+      });
+    }
+
+    return board;
   }
 
   /**
