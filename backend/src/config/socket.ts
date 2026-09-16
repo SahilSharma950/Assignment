@@ -36,6 +36,9 @@ export function initializeSocket(httpServer: HttpServer) {
 
   io.on('connection', (socket) => {
     logger.info(`Socket connected: ${socket.id} (User: ${socket.data.user.id})`);
+    
+    // Automatically join the user's private room for notifications
+    socket.join(`user:${socket.data.user.id}`);
 
     // Handle joining a board room
     socket.on('joinBoard', async (boardId: string, callback?: (response: { status: string; error?: string }) => void) => {

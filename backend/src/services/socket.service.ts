@@ -22,6 +22,17 @@ class SocketService {
     this.io.to(`board:${boardId}`).emit(event, payload);
   }
 
+  /**
+   * Emits to a specific user's private room.
+   */
+  emitToUser(userId: string, event: string, payload: any) {
+    if (!this.io) {
+      logger.warn('SocketService: Socket.io not initialized. Skipping emission.');
+      return;
+    }
+    this.io.to(`user:${userId}`).emit(event, payload);
+  }
+
   // Task Events
   broadcastTaskCreated(boardId: string, task: ITask) {
     this.emitToBoard(boardId, 'taskCreated', task);

@@ -2,6 +2,7 @@ import { taskRepository } from '../repositories/task.repository.js';
 import { listService } from './list.service.js';
 import { boardService } from './board.service.js';
 import { workspaceService } from './workspace.service.js';
+import { notificationService } from './notification.service.js';
 import { NotFoundError, ForbiddenError } from '../utils/AppError.js';
 import { ITask } from '../models/task.model.js';
 import { socketService } from './socket.service.js';
@@ -175,6 +176,19 @@ class TaskService {
 
     const updatedTask = await taskRepository.addAssignee(taskId, assigneeId);
     socketService.broadcastTaskUpdated(board.id, updatedTask!);
+
+    // Only notify if someone else is assigning the task to the user
+    if (assigneeId !== userId) {
+      await notificationService.pushNotification({
+        recipient: new mongoose.Types.ObjectId(assigneeId),
+        sender: new mongoose.Types.ObjectId(userId),
+        type: 'TASK_ASSIGNED',
+        content: `You have been assigned to task: "${updatedTask!.title}"`,
+        entityId: new mongoose.Types.ObjectId(taskId),
+        entityModel: 'Task',
+      });
+    }
+
     return updatedTask!;
   }
 

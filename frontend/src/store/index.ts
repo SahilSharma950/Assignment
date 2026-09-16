@@ -4,6 +4,7 @@ import authReducer from './slices/authSlice';
 import workspaceReducer from './slices/workspaceSlice';
 import boardReducer from './slices/boardSlice';
 import chatReducer from './slices/chatSlice';
+import notificationReducer from './slices/notificationSlice';
 
 /**
  * Redux store configuration.
@@ -23,6 +24,7 @@ export const store = configureStore({
     workspace: workspaceReducer,
     board: boardReducer,
     chat: chatReducer,
+    notification: notificationReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

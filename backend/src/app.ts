@@ -23,6 +23,7 @@ import { taskRoute } from './routes/task.route.js';
 import commentRoute from './routes/comment.routes.js';
 import attachmentRoute from './routes/attachment.routes.js';
 import chatRoute from './routes/chat.routes.js';
+import notificationRoute from './routes/notification.routes.js';
 
 // ─── App Factory ───────────────────────────────────────────────────────────────
 export const app: Express = express();
@@ -144,6 +145,7 @@ app.use('/api/v1/tasks', taskRoute);
 app.use('/api/v1/comments', commentRoute);
 app.use('/api/v1/attachments', attachmentRoute);
 app.use('/api/v1/chat', chatRoute);
+app.use('/api/v1/notifications', notificationRoute);
 
 // Serve static uploads
 app.use('/uploads', express.static(env.UPLOAD_DIR));
