@@ -9,8 +9,10 @@ import App from './App';
 import { store } from './store';
 import './styles/index.css';
 
-import { SocketProvider } from './contexts/SocketContext';
+import { ThemeProvider } from './context/ThemeContext.tsx';
+import { ErrorBoundary } from './components/layout/ErrorBoundary.tsx';
 import { AuthProvider } from './context/AuthContext';
+import { SocketProvider } from './contexts/SocketContext';
 
 // ─── React Query Client ────────────────────────────────────────────────────────
 const queryClient = new QueryClient({
@@ -33,21 +35,23 @@ if (!rootElement) {
   throw new Error('[main] Root element #root not found in DOM');
 }
 
-ReactDOM.createRoot(rootElement).render(
+ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <Provider store={store}>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <ThemeProvider>
-            <AuthProvider>
-              <SocketProvider>
-                <App />
-              </SocketProvider>
-            </AuthProvider>
-          </ThemeProvider>
-        </BrowserRouter>
-        {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} position="bottom" />}
-      </QueryClientProvider>
-    </Provider>
+    <ErrorBoundary>
+      <Provider store={store}>
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <ThemeProvider>
+              <AuthProvider>
+                <SocketProvider>
+                  <App />
+                </SocketProvider>
+              </AuthProvider>
+            </ThemeProvider>
+          </BrowserRouter>
+          {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} position="bottom" />}
+        </QueryClientProvider>
+      </Provider>
+    </ErrorBoundary>
   </React.StrictMode>,
 );
