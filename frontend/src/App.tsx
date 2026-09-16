@@ -13,31 +13,35 @@ import Workspace from './pages/Workspace';
 import Board from './pages/Board';
 import Chat from './pages/Chat';
 import { DashboardLayout } from './components/layout/DashboardLayout';
+import { PwaUpdatePrompt } from './components/layout/PwaUpdatePrompt';
 
 const App: FC = () => {
   return (
-    <Routes>
-      {/* Public routes */}
-      <Route path="/" element={<Home />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/forgot-password" element={<div>Forgot Password</div>} />
+    <>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<div>Forgot Password</div>} />
 
-      {/* Protected routes wrapped in Dashboard Layout */}
-      <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
-      <Route path="/workspace/:workspaceId" element={<DashboardLayout><Workspace /></DashboardLayout>} />
-      <Route path="/workspace/:workspaceId/board/:boardId" element={<DashboardLayout><Board /></DashboardLayout>} />
-      <Route path="/workspace/:workspaceId/docs/:docId" element={<DashboardLayout><div>Document</div></DashboardLayout>} />
-      <Route path="/workspace/:workspaceId/chat" element={<DashboardLayout><Chat /></DashboardLayout>} />
-      <Route path="/workspace/:workspaceId/chat/:channelId" element={<DashboardLayout><Chat /></DashboardLayout>} />
+        {/* Protected routes wrapped in Dashboard Layout */}
+        <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
+        <Route path="/workspace/:workspaceId" element={<DashboardLayout><Workspace /></DashboardLayout>} />
+        <Route path="/workspace/:workspaceId/board/:boardId" element={<DashboardLayout><Board /></DashboardLayout>} />
+        <Route path="/workspace/:workspaceId/docs/:docId" element={<DashboardLayout><div>Document</div></DashboardLayout>} />
+        <Route path="/workspace/:workspaceId/chat" element={<DashboardLayout><Chat /></DashboardLayout>} />
+        <Route path="/workspace/:workspaceId/chat/:channelId" element={<DashboardLayout><Chat /></DashboardLayout>} />
 
-      {/* Error routes */}
-      <Route path="/404" element={<div>404 Not Found</div>} />
-      <Route path="/500" element={<div>500 Server Error</div>} />
+        {/* Error routes */}
+        <Route path="/404" element={<div>404 Not Found</div>} />
+        <Route path="/500" element={<div>500 Server Error</div>} />
 
-      {/* Default redirect */}
-      <Route path="*" element={<Navigate to="/404" replace />} />
-    </Routes>
+        {/* Catch all */}
+        <Route path="*" element={<Navigate to="/404" replace />} />
+      </Routes>
+      <PwaUpdatePrompt />
+    </>
   );
 };
 
