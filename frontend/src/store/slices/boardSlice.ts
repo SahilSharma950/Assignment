@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import api from '../../services/api.js';
-import { Board, List, Task } from '../../types/board.js';
+import { apiClient } from '../../api/client';
+import { Board, List, Task } from '../../types/board';
 
 interface BoardState {
   currentBoard: Board | null;
@@ -25,13 +25,13 @@ export const fetchBoardData = createAsyncThunk(
   async (boardId: string, { rejectWithValue }) => {
     try {
       // Assuming GET /api/v1/boards/:id exists
-      const boardRes = await api.get(`/boards/${boardId}`);
+      const boardRes = await apiClient.get(`/boards/${boardId}`);
       // Get all lists
-      const listsRes = await api.get(`/lists/board/${boardId}`);
+      const listsRes = await apiClient.get(`/lists/board/${boardId}`);
       
       // Fetch tasks for each list concurrently
       const tasksPromises = listsRes.data.data.map((list: List) => 
-        api.get(`/tasks/list/${list._id}`)
+        apiClient.get(`/tasks/list/${list._id}`)
       );
       const tasksResponses = await Promise.all(tasksPromises);
       
@@ -67,7 +67,7 @@ export const moveTask = createAsyncThunk(
 
     try {
       // 2. Make API call
-      const response = await api.put(`/tasks/${payload.taskId}`, {
+      const response = await apiClient.put(`/tasks/${payload.taskId}`, {
         listId: payload.toListId,
         order: payload.newOrder,
       });
