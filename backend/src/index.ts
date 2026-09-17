@@ -1,3 +1,6 @@
+// Must load before any other import — config/env.ts reads process.env at
+// module-evaluation time, so .env has to be populated first.
+import 'dotenv/config';
 import 'express-async-errors';
 import { createServer } from 'http';
 
