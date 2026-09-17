@@ -1,9 +1,16 @@
 import type { FC } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link, useNavigate } from 'react-router-dom';
 import { analyticsApi } from '../api/analytics';
+import { CreateWorkspaceModal } from '../components/workspace/CreateWorkspaceModal';
+import { getDueDateBadge } from '../utils';
 
 const Dashboard: FC = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
   const { data, isLoading, isError } = useQuery({
     queryKey: ['dashboardMetrics'],
     queryFn: analyticsApi.getDashboardMetrics,
@@ -37,49 +44,62 @@ const Dashboard: FC = () => {
   const progressPercent = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 
   return (
-    <div className="animate-fade-in space-y-8 pb-12">
+    <div className="animate-fade-in space-y-10 pb-16">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Your Dashboard</h1>
           <p className="text-slate-500 dark:text-slate-400 mt-1">Here is what's happening across your workspaces.</p>
         </div>
-        <button className="px-5 py-2.5 bg-gradient-to-r from-primary-600 to-accent-600 hover:from-primary-700 hover:to-accent-700 text-white font-medium rounded-xl shadow-lg shadow-primary-500/30 transition-all hover:-translate-y-0.5">
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="px-5 py-2.5 bg-gradient-to-r from-primary-600 to-accent-600 hover:from-primary-700 hover:to-accent-700 text-white font-medium rounded-xl shadow-lg shadow-primary-500/30 transition-all hover:-translate-y-0.5"
+        >
           + New Workspace
         </button>
       </div>
 
+      <CreateWorkspaceModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onCreated={(workspace) => {
+          queryClient.invalidateQueries({ queryKey: ['dashboardMetrics'] });
+          queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+          navigate(`/workspace/${workspace._id}`);
+        }}
+      />
+
       {/* Top Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="glass-card p-6 bg-white dark:bg-surface-900 border border-slate-200 dark:border-surface-800 rounded-2xl relative overflow-hidden group">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="glass-card p-8 bg-white dark:bg-surface-900 border border-slate-200 dark:border-surface-800 rounded-2xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/10 rounded-full blur-2xl -mr-10 -mt-10 transition-transform group-hover:scale-150"></div>
-          <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Total Workspaces</h3>
+          <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3">Total Workspaces</h3>
           <div className="text-4xl font-extrabold text-slate-900 dark:text-white">{totalWorkspaces}</div>
         </div>
 
-        <div className="glass-card p-6 bg-white dark:bg-surface-900 border border-slate-200 dark:border-surface-800 rounded-2xl relative overflow-hidden group">
+        <div className="glass-card p-8 bg-white dark:bg-surface-900 border border-slate-200 dark:border-surface-800 rounded-2xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-accent-500/10 rounded-full blur-2xl -mr-10 -mt-10 transition-transform group-hover:scale-150"></div>
-          <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Active Tasks</h3>
+          <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3">Active Tasks</h3>
           <div className="text-4xl font-extrabold text-slate-900 dark:text-white">{totalTasks}</div>
         </div>
 
-        <div className="glass-card p-6 bg-white dark:bg-surface-900 border border-slate-200 dark:border-surface-800 rounded-2xl relative overflow-hidden group">
+        <div className="glass-card p-8 bg-white dark:bg-surface-900 border border-slate-200 dark:border-surface-800 rounded-2xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-success-500/10 rounded-full blur-2xl -mr-10 -mt-10 transition-transform group-hover:scale-150"></div>
-          <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Completion Rate</h3>
+          <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3">Completion Rate</h3>
           <div className="flex items-baseline gap-2">
             <div className="text-4xl font-extrabold text-slate-900 dark:text-white">{progressPercent}%</div>
           </div>
-          <div className="w-full bg-slate-100 dark:bg-surface-800 h-2 rounded-full mt-4 overflow-hidden">
+          <div className="w-full bg-slate-100 dark:bg-surface-800 h-2 rounded-full mt-5 overflow-hidden">
             <div className="bg-success-500 h-full rounded-full" style={{ width: `${progressPercent}%` }}></div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
         {/* Workspaces Overview */}
-        <div className="space-y-4">
+        <div className="space-y-5">
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">Your Workspaces</h2>
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 gap-5">
             {workspaceOverview.length === 0 ? (
               <div className="p-8 text-center bg-white dark:bg-surface-900 rounded-2xl border border-dashed border-slate-300 dark:border-surface-700">
                 <p className="text-slate-500 dark:text-slate-400">You haven't joined any workspaces yet.</p>
@@ -89,7 +109,7 @@ const Dashboard: FC = () => {
                 <Link
                   key={workspace._id}
                   to={`/workspace/${workspace._id}`}
-                  className="flex items-center justify-between p-5 bg-white dark:bg-surface-900 border border-slate-200 dark:border-surface-800 rounded-2xl hover:border-primary-500/50 hover:shadow-md transition-all group"
+                  className="flex items-center justify-between p-6 bg-white dark:bg-surface-900 border border-slate-200 dark:border-surface-800 rounded-2xl hover:border-primary-500/50 hover:shadow-md transition-all group"
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center text-primary-600 dark:text-primary-400 group-hover:scale-110 transition-transform">
@@ -121,7 +141,7 @@ const Dashboard: FC = () => {
         </div>
 
         {/* Upcoming Deadlines */}
-        <div className="space-y-4">
+        <div className="space-y-5">
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">Upcoming Deadlines</h2>
           <div className="bg-white dark:bg-surface-900 border border-slate-200 dark:border-surface-800 rounded-2xl overflow-hidden">
             {upcomingDeadlines.length === 0 ? (
@@ -131,13 +151,16 @@ const Dashboard: FC = () => {
             ) : (
               <ul className="divide-y divide-slate-100 dark:divide-surface-800">
                 {upcomingDeadlines.map((task) => {
-                  const isUrgent = new Date(task.dueDate).getTime() - new Date().getTime() < 86400000; // < 24 hrs
-                  
+                  const badge = getDueDateBadge(task.dueDate);
+
                   return (
-                    <li key={task._id} className="p-5 hover:bg-slate-50 dark:hover:bg-surface-800/50 transition-colors">
-                      <div className="flex items-start justify-between">
+                    <li key={task._id}>
+                      <Link
+                        to={`/workspace/${task.workspaceId}/board/${task.boardId}`}
+                        className="flex items-start justify-between p-6 hover:bg-slate-50 dark:hover:bg-surface-800/50 transition-colors"
+                      >
                         <div className="flex items-start gap-3">
-                          <div className={`mt-1 w-3 h-3 rounded-full flex-shrink-0 ${isUrgent ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' : 'bg-orange-400'}`}></div>
+                          <div className={`mt-1 w-3 h-3 rounded-full flex-shrink-0 ${badge.isUrgent ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' : 'bg-orange-400'}`}></div>
                           <div>
                             <p className="font-semibold text-slate-900 dark:text-white">{task.title}</p>
                             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
@@ -145,10 +168,10 @@ const Dashboard: FC = () => {
                             </p>
                           </div>
                         </div>
-                        <div className={`text-sm font-medium px-3 py-1 rounded-full ${isUrgent ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'}`}>
-                          {new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                        <div className={`text-sm font-medium px-3 py-1 rounded-full ${badge.colorClasses}`}>
+                          {badge.label}
                         </div>
-                      </div>
+                      </Link>
                     </li>
                   )
                 })}

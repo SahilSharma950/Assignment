@@ -51,6 +51,21 @@ export const formatRelativeTime = (date: Date | string): string => {
   return then.toLocaleDateString();
 };
 
+/**
+ * Shared due-date badge styling — red if overdue or due within 24h, orange
+ * otherwise. Kept in one place so every due-date badge in the app (task
+ * cards, dashboard deadlines, etc.) looks the same instead of drifting.
+ */
+export const getDueDateBadge = (dueDate: string) => {
+  const isUrgent = new Date(dueDate).getTime() - Date.now() < 24 * 60 * 60 * 1000;
+  const label = new Date(dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const colorClasses = isUrgent
+    ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+    : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400';
+
+  return { label, isUrgent, colorClasses };
+};
+
 // ─── Class Name Utilities ──────────────────────────────────────────────────────
 
 /**

@@ -1,11 +1,16 @@
 import type { FC } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import InfiniteScroll from 'react-infinite-scroll-component';
 import { boardApi } from '../api/board';
+import { CreateBoardModal } from '../components/board/CreateBoardModal';
 
 const Workspace: FC = () => {
   const { workspaceId } = useParams<{ workspaceId: string }>();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const {
     data,
@@ -51,7 +56,7 @@ const Workspace: FC = () => {
   const totalCount = data?.pages[0]?.data?.pagination?.total || 0;
 
   return (
-    <div className="animate-fade-in space-y-8 pb-12">
+    <div className="animate-fade-in space-y-10 pb-16">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -62,7 +67,10 @@ const Workspace: FC = () => {
             {totalCount} total boards in this workspace.
           </p>
         </div>
-        <button className="px-5 py-2.5 bg-gradient-to-r from-primary-600 to-accent-600 hover:from-primary-700 hover:to-accent-700 text-white font-medium rounded-xl shadow-lg shadow-primary-500/30 transition-all hover:-translate-y-0.5 flex items-center gap-2">
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="px-5 py-2.5 bg-gradient-to-r from-primary-600 to-accent-600 hover:from-primary-700 hover:to-accent-700 text-white font-medium rounded-xl shadow-lg shadow-primary-500/30 transition-all hover:-translate-y-0.5 flex items-center gap-2"
+        >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
@@ -78,9 +86,15 @@ const Workspace: FC = () => {
             </svg>
           </div>
           <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">No boards found</h3>
-          <p className="text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+          <p className="text-slate-500 dark:text-slate-400 max-w-sm mx-auto mb-6">
             Get started by creating your first board in this workspace to track your tasks.
           </p>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl transition-colors shadow-sm"
+          >
+            New Board
+          </button>
         </div>
       ) : (
         <InfiniteScroll
@@ -99,7 +113,7 @@ const Workspace: FC = () => {
           }
           style={{ overflow: 'visible' }} // required for grid layout inside InfiniteScroll
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8">
             {boards.map((board) => (
               <Link
                 key={board._id}
@@ -107,23 +121,23 @@ const Workspace: FC = () => {
                 className="group flex flex-col h-full bg-white dark:bg-surface-900 rounded-2xl border border-slate-200 dark:border-surface-800 overflow-hidden hover:border-primary-500/50 hover:shadow-xl hover:shadow-primary-500/5 transition-all duration-300 transform hover:-translate-y-1"
               >
                 {/* Board Card Banner */}
-                <div className="h-24 w-full bg-gradient-to-br from-indigo-500/20 via-purple-500/20 to-fuchsia-500/20 group-hover:from-indigo-500/30 group-hover:via-purple-500/30 group-hover:to-fuchsia-500/30 transition-colors relative">
+                <div className="h-28 w-full bg-gradient-to-br from-indigo-500/20 via-purple-500/20 to-fuchsia-500/20 group-hover:from-indigo-500/30 group-hover:via-purple-500/30 group-hover:to-fuchsia-500/30 transition-colors relative">
                   <div className="absolute top-4 right-4 bg-white/50 dark:bg-black/20 backdrop-blur-sm px-2.5 py-1 rounded-full text-xs font-medium text-slate-700 dark:text-slate-300">
                     {new Date(board.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                   </div>
                 </div>
 
                 {/* Board Card Content */}
-                <div className="p-5 flex-1 flex flex-col">
+                <div className="p-7 flex-1 flex flex-col">
                   <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors line-clamp-1">
                     {board.name}
                   </h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 flex-1 mb-4">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 flex-1 mb-5">
                     {board.description || 'No description provided for this board.'}
                   </p>
-                  
+
                   {/* Board Footer */}
-                  <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-surface-800">
+                  <div className="flex items-center justify-between pt-5 border-t border-slate-100 dark:border-surface-800">
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-primary-500 to-accent-500 flex items-center justify-center text-white text-xs font-bold shadow-sm">
                         {board.createdBy.name.charAt(0).toUpperCase()}
@@ -139,6 +153,16 @@ const Workspace: FC = () => {
           </div>
         </InfiniteScroll>
       )}
+
+      <CreateBoardModal
+        isOpen={isModalOpen}
+        workspaceId={workspaceId!}
+        onClose={() => setIsModalOpen(false)}
+        onCreated={(board) => {
+          queryClient.invalidateQueries({ queryKey: ['workspaceBoards', workspaceId] });
+          navigate(`/workspace/${workspaceId}/board/${board._id}`);
+        }}
+      />
     </div>
   );
 };

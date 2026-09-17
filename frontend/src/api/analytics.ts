@@ -18,7 +18,9 @@ export interface UpcomingDeadlineMetric {
   title: string;
   dueDate: string;
   status: string;
+  boardId: string;
   boardName: string;
+  workspaceId: string;
 }
 
 export interface DashboardMetricsResponse {
