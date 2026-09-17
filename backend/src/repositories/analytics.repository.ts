@@ -89,23 +89,23 @@ class AnalyticsRepository {
   }
 
   /**
-   * Fetches upcoming tasks assigned to the user, sorted by due date.
+   * Fetches all dated tasks assigned to or created by the user, sorted by due
+   * date ascending — overdue tasks included (they sort to the top), since the
+   * dashboard flags those in red rather than hiding them.
    */
-  async getUpcomingDeadlines(userId: string, limit: number = 5) {
+  async getUpcomingDeadlines(userId: string) {
     const userObjectId = new mongoose.Types.ObjectId(userId);
-    const now = new Date();
 
     const pipeline = [
-      // 1. Match tasks assigned to the user with a future due date
+      // 1. Match tasks assigned to or created by the user that have a due date set
       {
         $match: {
-          assignees: userObjectId,
-          dueDate: { $gte: now },
+          $or: [{ assignees: userObjectId }, { createdBy: userObjectId }],
+          dueDate: { $exists: true, $ne: null },
         },
       },
-      // 2. Sort by due date ascending (closest first)
+      // 2. Sort by due date ascending (most overdue / soonest first)
       { $sort: { dueDate: 1 as const } },
-      { $limit: limit },
       // 3. Lookup List
       {
         $lookup: {
@@ -132,7 +132,9 @@ class AnalyticsRepository {
           title: 1,
           dueDate: 1,
           status: '$listDoc.name',
+          boardId: '$boardDoc._id',
           boardName: '$boardDoc.name',
+          workspaceId: '$boardDoc.workspace',
         },
       },
     ];
