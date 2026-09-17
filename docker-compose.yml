@@ -11,6 +11,10 @@ services:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: password
       MONGO_INITDB_DATABASE: mini-saas
+    # A replica set (even a single node) is required for the multi-document
+    # transactions used by task move/reorder — a plain standalone mongod
+    # rejects transactions outright.
+    command: ['--replSet', 'rs0', '--bind_ip_all']
     volumes:
       - mongodb_data:/data/db
       - ./docker/mongodb/init.js:/docker-entrypoint-initdb.d/init.js:ro
@@ -22,6 +26,29 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+
+  # One-shot job: initiates the single-node replica set once mongodb is up.
+  # Decoupled from docker-entrypoint-initdb.d because that phase runs before
+  # auth is fully live, which makes replica-set init there unreliable.
+  mongo-init:
+    image: mongo:7.0
+    container_name: mini-saas-mongo-init
+    restart: 'no'
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - mini-saas-network
+    entrypoint:
+      - mongosh
+      - --host=mongodb
+      - --username=admin
+      - --password=password
+      - --authenticationDatabase=admin
+      - --eval
+      - >
+        try { rs.status(); print('Replica set already initiated'); }
+        catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongodb:27017' }] }); print('Replica set initiated'); }
 
   redis:
     image: redis:7.2-alpine
@@ -50,7 +77,7 @@ services:
     ports:
       - '5000:5000'
     environment:
-      MONGODB_URI: mongodb://admin:password@mongodb:27017/mini-saas?authSource=admin
+      MONGODB_URI: mongodb://admin:password@mongodb:27017/mini-saas?authSource=admin&replicaSet=rs0
       REDIS_HOST: redis
       REDIS_PORT: 6379
       NODE_ENV: production
@@ -61,6 +88,8 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
     networks:

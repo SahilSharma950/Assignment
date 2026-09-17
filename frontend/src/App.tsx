@@ -9,9 +9,10 @@ import Home from './pages/Home';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Dashboard from './pages/Dashboard';
+import Workspaces from './pages/Workspaces';
 import Workspace from './pages/Workspace';
 import Board from './pages/Board';
-import Chat from './pages/Chat';
+import ChatHub from './pages/ChatHub';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { PwaUpdatePrompt } from './components/layout/PwaUpdatePrompt';
 
@@ -27,11 +28,11 @@ const App: FC = () => {
 
         {/* Protected routes wrapped in Dashboard Layout */}
         <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
+        <Route path="/workspaces" element={<DashboardLayout><Workspaces /></DashboardLayout>} />
         <Route path="/workspace/:workspaceId" element={<DashboardLayout><Workspace /></DashboardLayout>} />
         <Route path="/workspace/:workspaceId/board/:boardId" element={<DashboardLayout><Board /></DashboardLayout>} />
         <Route path="/workspace/:workspaceId/docs/:docId" element={<DashboardLayout><div>Document</div></DashboardLayout>} />
-        <Route path="/workspace/:workspaceId/chat" element={<DashboardLayout><Chat /></DashboardLayout>} />
-        <Route path="/workspace/:workspaceId/chat/:channelId" element={<DashboardLayout><Chat /></DashboardLayout>} />
+        <Route path="/chat" element={<DashboardLayout><ChatHub /></DashboardLayout>} />
 
         {/* Error routes */}
         <Route path="/404" element={<div>404 Not Found</div>} />

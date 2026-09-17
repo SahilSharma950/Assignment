@@ -1,12 +1,14 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { Task } from '../../types/board';
+import { getDueDateBadge } from '../../utils';
 
 interface TaskCardProps {
   task: Task;
+  onClick?: (task: Task) => void;
 }
 
-export const TaskCard = ({ task }: TaskCardProps) => {
+export const TaskCard = ({ task, onClick }: TaskCardProps) => {
   const {
     attributes,
     listeners,
@@ -31,24 +33,26 @@ export const TaskCard = ({ task }: TaskCardProps) => {
     );
   }
 
+  const dueDateBadge = task.dueDate ? getDueDateBadge(task.dueDate) : null;
+
   return (
     <div
       ref={setNodeRef}
       style={style}
       {...attributes}
       {...listeners}
-      className="bg-white/80 dark:bg-surface-800/80 backdrop-blur-sm border border-slate-200 dark:border-surface-700 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing group"
+      onClick={() => onClick?.(task)}
+      className="bg-white/80 dark:bg-surface-800/80 backdrop-blur-sm border border-slate-200 dark:border-surface-700 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing group"
     >
       <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100">
         {task.title}
       </h4>
       {task.description && (
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 line-clamp-2">
           {task.description}
         </p>
       )}
-      <div className="flex items-center justify-between mt-3">
-        {/* Assignees avatars placeholder */}
+      <div className="flex items-center justify-between mt-4">
         <div className="flex -space-x-2">
           {task.assignees?.map((assignee) => (
             <div
@@ -60,6 +64,11 @@ export const TaskCard = ({ task }: TaskCardProps) => {
             </div>
           ))}
         </div>
+        {dueDateBadge && (
+          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${dueDateBadge.colorClasses}`}>
+            {dueDateBadge.label}
+          </span>
+        )}
       </div>
     </div>
   );

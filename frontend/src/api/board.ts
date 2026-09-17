@@ -30,13 +30,32 @@ export interface PaginatedBoardsResponse {
   };
 }
 
+export interface CreateBoardPayload {
+  name: string;
+  description?: string;
+  workspaceId: string;
+}
+
+export interface BoardResponse {
+  success: boolean;
+  message: string;
+  data: Board;
+}
+
 export const boardApi = {
   getWorkspaceBoards: async (workspaceId: string, page: number = 1, limit: number = 10): Promise<PaginatedBoardsResponse> => {
-    const response = await apiClient.get<PaginatedBoardsResponse>(`/workspaces/${workspaceId}/boards`, {
+    const response = await apiClient.get<PaginatedBoardsResponse>(`/boards/workspace/${workspaceId}`, {
       params: { page, limit },
     });
     return response.data;
   },
-  
-  // Future methods: createBoard, updateBoard, deleteBoard, getBoardById
+
+  create: async (data: CreateBoardPayload): Promise<BoardResponse> => {
+    const response = await apiClient.post<BoardResponse>('/boards', data);
+    return response.data;
+  },
+
+  delete: async (boardId: string): Promise<void> => {
+    await apiClient.delete(`/boards/${boardId}`);
+  },
 };

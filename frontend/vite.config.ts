@@ -11,6 +11,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      devOptions: { enabled: true, type: 'module', suppressWarnings: true },
       includeAssets: ['favicon.svg', 'robots.txt', 'icons/*.png'],
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
@@ -107,9 +108,5 @@ export default defineConfig({
 
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', '@reduxjs/toolkit'],
-  },
-
-  test: {
-    // Vitest config (if migrating from Jest in future)
   },
 });

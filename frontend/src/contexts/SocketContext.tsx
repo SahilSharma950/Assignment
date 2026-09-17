@@ -20,10 +20,12 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   useEffect(() => {
     // Only connect if we have an access token
-    const token = localStorage.getItem(config.auth.accessTokenKey);
+    // NOTE: auth writes the token under the plain 'accessToken' key (see AuthContext),
+    // not config.auth.accessTokenKey — kept in sync with that until they're unified.
+    const token = localStorage.getItem('accessToken');
     if (!token) return;
 
-    const socketInstance = io(config.api.baseURL.replace('/api/v1', ''), {
+    const socketInstance = io(config.api.baseUrl.replace('/api/v1', ''), {
       auth: { token },
       withCredentials: true,
       transports: ['websocket'], // Prefer websocket, fallback to polling if needed

@@ -80,6 +80,98 @@ export const moveTask = createAsyncThunk(
   }
 );
 
+export const createList = createAsyncThunk(
+  'board/createList',
+  async (payload: { boardId: string; name: string }, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.post(`/lists`, { boardId: payload.boardId, name: payload.name });
+      return response.data.data as List;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to create list');
+    }
+  }
+);
+
+export const renameList = createAsyncThunk(
+  'board/renameList',
+  async (payload: { listId: string; name: string }, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.put(`/lists/${payload.listId}`, { name: payload.name });
+      return response.data.data as List;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to rename list');
+    }
+  }
+);
+
+export const deleteList = createAsyncThunk(
+  'board/deleteList',
+  async (listId: string, { rejectWithValue }) => {
+    try {
+      await apiClient.delete(`/lists/${listId}`);
+      return listId;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to delete list');
+    }
+  }
+);
+
+export const createTask = createAsyncThunk(
+  'board/createTask',
+  async (payload: { listId: string; title: string }, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.post(`/tasks`, { listId: payload.listId, title: payload.title });
+      return response.data.data as Task;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to create task');
+    }
+  }
+);
+
+export interface UpdateTaskDetailsPayload {
+  taskId: string;
+  title?: string;
+  description?: string;
+  dueDate?: string; // ISO datetime string
+}
+
+export const updateTaskDetails = createAsyncThunk(
+  'board/updateTaskDetails',
+  async (payload: UpdateTaskDetailsPayload, { rejectWithValue }) => {
+    try {
+      const { taskId, ...rest } = payload;
+      const response = await apiClient.put(`/tasks/${taskId}`, rest);
+      return response.data.data as Task;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to update task');
+    }
+  }
+);
+
+export const assignTask = createAsyncThunk(
+  'board/assignTask',
+  async (payload: { taskId: string; assigneeId: string }, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.post(`/tasks/${payload.taskId}/assignees`, { assigneeId: payload.assigneeId });
+      return response.data.data as Task;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to assign task');
+    }
+  }
+);
+
+export const unassignTask = createAsyncThunk(
+  'board/unassignTask',
+  async (payload: { taskId: string; assigneeId: string }, { rejectWithValue }) => {
+    try {
+      const response = await apiClient.delete(`/tasks/${payload.taskId}/assignees/${payload.assigneeId}`);
+      return response.data.data as Task;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to unassign task');
+    }
+  }
+);
+
 // ─── Slice ────────────────────────────────────────────────────────────────────
 
 const boardSlice = createSlice({
@@ -183,7 +275,37 @@ const boardSlice = createSlice({
       .addCase(fetchBoardData.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
-      });
+      })
+      .addCase(createList.fulfilled, (state, action) => {
+        state.lists.push(action.payload);
+        state.tasks[action.payload._id] = [];
+      })
+      .addCase(renameList.fulfilled, (state, action) => {
+        const list = state.lists.find((l) => l._id === action.payload._id);
+        if (list) list.name = action.payload.name;
+      })
+      .addCase(deleteList.fulfilled, (state, action) => {
+        state.lists = state.lists.filter((l) => l._id !== action.payload);
+        delete state.tasks[action.payload];
+      })
+      .addCase(createTask.fulfilled, (state, action) => {
+        const task = action.payload;
+        if (!state.tasks[task.list]) {
+          state.tasks[task.list] = [];
+        }
+        state.tasks[task.list].push(task);
+      })
+      .addMatcher(
+        (action): action is PayloadAction<Task> =>
+          [updateTaskDetails.fulfilled.type, assignTask.fulfilled.type, unassignTask.fulfilled.type].includes(action.type),
+        (state, action) => {
+          const task = action.payload;
+          const list = state.tasks[task.list];
+          if (!list) return;
+          const index = list.findIndex((t) => t._id === task._id);
+          if (index !== -1) list[index] = task;
+        },
+      );
   }
 });
 
