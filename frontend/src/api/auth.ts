@@ -1,22 +1,18 @@
 import { apiClient } from './client';
 
 export interface User {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   avatar?: string;
 }
 
-export interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-}
-
 export interface AuthResponse {
-  status: string;
+  success: boolean;
+  message: string;
   data: {
     user: User;
-    tokens: AuthTokens;
+    accessToken: string;
   };
 }
 
@@ -30,6 +26,8 @@ export const authApi = {
     const response = await apiClient.post<AuthResponse>('/auth/register', data);
     return response.data;
   },
-  
-  // Future methods: logout, refreshToken
+
+  logout: async (): Promise<void> => {
+    await apiClient.post('/auth/logout');
+  },
 };

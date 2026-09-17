@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User } from '../api/auth';
+import { User, authApi } from '../api/auth';
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (user: User, accessToken: string, refreshToken: string) => void;
-  logout: () => void;
+  login: (user: User, accessToken: string) => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,18 +25,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const login = (newUser: User, accessToken: string, refreshToken: string) => {
+  const login = (newUser: User, accessToken: string) => {
     setUser(newUser);
     localStorage.setItem('user', JSON.stringify(newUser));
     localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('refreshToken', refreshToken);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      // Invalidates the refresh token server-side; safe to ignore failures
+      // (e.g. token already expired) since we clear local state regardless.
+      await authApi.logout();
+    } catch {
+      // no-op
+    }
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
   };
 
   return (

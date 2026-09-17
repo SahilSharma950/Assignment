@@ -31,8 +31,8 @@ const Login: FC = () => {
     try {
       setApiError(null);
       const response = await authApi.login(data);
-      const { user, tokens } = response.data;
-      login(user, tokens.accessToken, tokens.refreshToken);
+      const { user, accessToken } = response.data;
+      login(user, accessToken);
       navigate('/dashboard');
     } catch (err: any) {
       setApiError(
