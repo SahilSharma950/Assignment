@@ -27,8 +27,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public handleReset = () => {
     this.setState({ hasError: false, error: null });
-    // Optional: redirect to home or reload
-    window.location.href = '/';
+    window.location.href = '/dashboard';
   };
 
   public render() {

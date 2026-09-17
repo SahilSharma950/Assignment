@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
 import { fetchNotifications, markAsRead, markAllAsRead, notificationReceived } from '../../store/slices/notificationSlice';
 import { useSocket } from '../../contexts/SocketContext';
-import { Link } from 'react-router-dom';
 
 export const NotificationDropdown: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -25,9 +24,9 @@ export const NotificationDropdown: React.FC = () => {
         dispatch(notificationReceived(notification));
       };
       
-      socket.on('notification_received', handleNewNotification);
+      socket.on('notification', handleNewNotification);
       return () => {
-        socket.off('notification_received', handleNewNotification);
+        socket.off('notification', handleNewNotification);
       };
     }
   }, [socket, isConnected, dispatch]);
@@ -135,12 +134,6 @@ export const NotificationDropdown: React.FC = () => {
                 ))}
               </div>
             )}
-          </div>
-          
-          <div className="p-3 border-t border-slate-100 dark:border-surface-800 text-center bg-slate-50 dark:bg-surface-800/50">
-            <Link to="/dashboard" className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
-              View all settings
-            </Link>
           </div>
         </div>
       )}
