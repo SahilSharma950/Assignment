@@ -7,6 +7,7 @@ import { socketService } from '../services/socket.service.js';
 import { workspaceService } from '../services/workspace.service.js';
 import { boardRepository } from '../repositories/board.repository.js';
 import { chatService } from '../services/chat.service.js';
+import { directMessageService } from '../services/directMessage.service.js';
 
 export function initializeSocket(httpServer: HttpServer) {
   const io = new Server(httpServer, {
@@ -26,8 +27,9 @@ export function initializeSocket(httpServer: HttpServer) {
     }
 
     try {
-      const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET) as { id: string; role?: string };
-      socket.data.user = decoded;
+      // Access tokens are signed with { userId }, not { id } — see utils/jwt.ts.
+      const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET) as { userId: string };
+      socket.data.user = { id: decoded.userId };
       next();
     } catch (err) {
       next(new Error('Authentication error: Invalid token'));
@@ -101,6 +103,20 @@ export function initializeSocket(httpServer: HttpServer) {
         if (callback) callback({ status: 'success' });
       } catch (error: any) {
         logger.error(`Failed to send message in workspace ${payload.workspaceId}:`, error);
+        if (callback) callback({ status: 'error', error: error.message });
+      }
+    });
+
+    // Handle sending a direct message (1:1) — no room-joining needed since
+    // every socket auto-joins its own `user:{id}` room on connect.
+    socket.on('sendDirectMessage', async (payload: { recipientId: string; content: string }, callback?: (response: { status: string; error?: string }) => void) => {
+      try {
+        const message = await directMessageService.sendMessage(socket.data.user.id, payload.recipientId, payload.content);
+        io.to(`user:${payload.recipientId}`).emit('newDirectMessage', message);
+        io.to(`user:${socket.data.user.id}`).emit('newDirectMessage', message);
+        if (callback) callback({ status: 'success' });
+      } catch (error: any) {
+        logger.error(`Failed to send direct message to ${payload.recipientId}:`, error);
         if (callback) callback({ status: 'error', error: error.message });
       }
     });
