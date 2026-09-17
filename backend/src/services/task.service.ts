@@ -133,7 +133,18 @@ class TaskService {
         }
 
         // 3. Update the task itself
-        updatedTask = await taskRepository.update(taskId, { ...data, order: newOrder }, session);
+        // NOTE: the schema field is `list`, not `listId` (that's the DTO/API name) —
+        // passing `listId` straight through is silently dropped by Mongoose's strict
+        // schema, so the move never actually persisted.
+        const updatePayload: Partial<ITask> = { order: newOrder };
+        if (data.title !== undefined) updatePayload.title = data.title;
+        if (data.description !== undefined) updatePayload.description = data.description;
+        if (data.dueDate !== undefined) updatePayload.dueDate = data.dueDate;
+        if (data.listId !== undefined) {
+          updatePayload.list = new mongoose.Types.ObjectId(data.listId);
+        }
+
+        updatedTask = await taskRepository.update(taskId, updatePayload, session);
       });
     } finally {
       await session.endSession();
