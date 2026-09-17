@@ -62,3 +62,33 @@ export const remove = async (req: Request, res: Response) => {
   await workspaceService.deleteWorkspace(id, userId);
   sendSuccess(res, null, 'Workspace deleted successfully');
 };
+
+const addMemberSchema = z.object({
+  email: z.string().email('A valid email address is required'),
+});
+
+export const addMember = async (req: Request, res: Response) => {
+  const id = req.params.id as string;
+  const userId = req.user!.id;
+  const { email } = addMemberSchema.parse(req.body);
+
+  const workspace = await workspaceService.addMemberByEmail(id, userId, email);
+  sendSuccess(res, workspace, 'Member added successfully');
+};
+
+export const getMembers = async (req: Request, res: Response) => {
+  const id = req.params.id as string;
+  const userId = req.user!.id;
+
+  const workspace = await workspaceService.getWorkspaceMembers(id, userId);
+  sendSuccess(res, workspace, 'Members retrieved successfully');
+};
+
+export const removeMember = async (req: Request, res: Response) => {
+  const id = req.params.id as string;
+  const memberId = req.params.userId as string;
+  const requesterId = req.user!.id;
+
+  const workspace = await workspaceService.removeMember(id, requesterId, memberId);
+  sendSuccess(res, workspace, 'Member removed successfully');
+};

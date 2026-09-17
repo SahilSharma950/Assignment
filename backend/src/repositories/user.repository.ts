@@ -33,6 +33,17 @@ class UserRepository {
     const user = new User(userData);
     return user.save();
   }
+
+  /**
+   * Lists users other than the given one, for people-picker style UI
+   * (e.g. inviting a workspace member). Not paginated — fine at this scale.
+   */
+  async findAllExcept(excludeUserId: string, limit: number = 100): Promise<IUser[]> {
+    return User.find({ _id: { $ne: excludeUserId } })
+      .select('name email avatar')
+      .sort({ name: 1 })
+      .limit(limit);
+  }
 }
 
 export const userRepository = new UserRepository();
