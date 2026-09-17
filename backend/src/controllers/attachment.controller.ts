@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { attachmentService } from '../services/attachment.service.js';
 import { AppError } from '../utils/AppError.js';
+import { sendCreated, sendSuccess, sendNoContent } from '../utils/httpResponse.js';
 
 class AttachmentController {
   async uploadAttachment(req: Request, res: Response, next: NextFunction) {
@@ -27,10 +28,7 @@ class AttachmentController {
         req.user!.id
       );
 
-      res.status(201).json({
-        status: 'success',
-        data: attachment,
-      });
+      sendCreated(res, attachment, 'Attachment uploaded successfully');
     } catch (error) {
       next(error);
     }
@@ -42,13 +40,9 @@ class AttachmentController {
       if (!taskId.match(/^[0-9a-fA-F]{24}$/)) {
         throw new AppError('Invalid task ID', 400);
       }
-      
+
       const attachments = await attachmentService.getAttachmentsByTask(taskId, req.user!.id);
-      res.status(200).json({
-        status: 'success',
-        results: attachments.length,
-        data: attachments,
-      });
+      sendSuccess(res, attachments, 'Attachments retrieved successfully');
     } catch (error) {
       next(error);
     }
@@ -58,10 +52,7 @@ class AttachmentController {
     try {
       const id = req.params.id as string;
       await attachmentService.deleteAttachment(id, req.user!.id);
-      res.status(204).json({
-        status: 'success',
-        data: null,
-      });
+      sendNoContent(res);
     } catch (error) {
       next(error);
     }

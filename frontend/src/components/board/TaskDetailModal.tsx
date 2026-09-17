@@ -1,9 +1,13 @@
 import type { FC } from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AppDispatch } from '../../store';
 import { updateTaskDetails, assignTask, unassignTask } from '../../store/slices/boardSlice';
 import type { Task, User } from '../../types/board';
+import { attachmentApi, getAttachmentUrl } from '../../api/attachment';
+import { useAuth } from '../../context/AuthContext';
+import { formatFileSize } from '../../utils';
 
 interface TaskDetailModalProps {
   task: Task | null;
@@ -15,14 +19,31 @@ interface TaskDetailModalProps {
 // only understands YYYY-MM-DD.
 const toDateInputValue = (iso?: string) => (iso ? iso.slice(0, 10) : '');
 
+// Mirrors the backend's default MAX_FILE_SIZE_MB (config/env.ts) — checked
+// client-side purely to fail fast; the server enforces its own limit regardless.
+const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
 export const TaskDetailModal: FC<TaskDetailModalProps> = ({ task, members, onClose }) => {
   const dispatch = useDispatch<AppDispatch>();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [pendingAssigneeId, setPendingAssigneeId] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [deletingAttachmentId, setDeletingAttachmentId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const { data: attachmentsData } = useQuery({
+    queryKey: ['attachments', task?._id],
+    queryFn: () => attachmentApi.getByTask(task!._id),
+    enabled: !!task,
+  });
+  const attachments = attachmentsData?.data ?? [];
 
   useEffect(() => {
     if (task) {
@@ -75,6 +96,42 @@ export const TaskDetailModal: FC<TaskDetailModalProps> = ({ task, members, onClo
       setError(typeof err === 'string' ? err : `Failed to update assignment for ${member.name}.`);
     } finally {
       setPendingAssigneeId(null);
+    }
+  };
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-selecting the same file next time
+    if (!file || !task) return;
+
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setError(`"${file.name}" is larger than ${MAX_FILE_SIZE_MB}MB.`);
+      return;
+    }
+
+    setIsUploading(true);
+    setError(null);
+    try {
+      await attachmentApi.upload(task._id, file);
+      queryClient.invalidateQueries({ queryKey: ['attachments', task._id] });
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to upload file. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentId: string) => {
+    if (!task) return;
+    setDeletingAttachmentId(attachmentId);
+    setError(null);
+    try {
+      await attachmentApi.delete(attachmentId);
+      queryClient.invalidateQueries({ queryKey: ['attachments', task._id] });
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to delete attachment.');
+    } finally {
+      setDeletingAttachmentId(null);
     }
   };
 
@@ -165,6 +222,61 @@ export const TaskDetailModal: FC<TaskDetailModalProps> = ({ task, members, onClo
                 );
               })}
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                Attachments {attachments.length > 0 && `(${attachments.length})`}
+              </label>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className="text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isUploading ? 'Uploading...' : '+ Add file'}
+              </button>
+              <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileSelected} />
+            </div>
+
+            {attachments.length === 0 ? (
+              <p className="text-sm text-slate-400">No files attached yet.</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {attachments.map((attachment) => (
+                  <li
+                    key={attachment._id}
+                    className="flex items-center gap-3 px-3 py-2 rounded-xl bg-slate-50 dark:bg-surface-800 border border-slate-200 dark:border-surface-700"
+                  >
+                    <svg className="w-4 h-4 flex-shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 10-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                    </svg>
+                    <a
+                      href={getAttachmentUrl(attachment.filename)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={attachment.originalName}
+                      className="flex-1 truncate text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 hover:underline"
+                    >
+                      {attachment.originalName}
+                    </a>
+                    <span className="text-xs text-slate-400 flex-shrink-0">{formatFileSize(attachment.size)}</span>
+                    {attachment.uploadedBy._id === user?._id && (
+                      <button
+                        onClick={() => handleDeleteAttachment(attachment._id)}
+                        disabled={deletingAttachmentId === attachment._id}
+                        title="Delete attachment"
+                        className="flex-shrink-0 text-slate-400 hover:text-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
 
