@@ -57,3 +57,7 @@ backend/uploads/*
 # ─── PWA ──────────────────────────────────────────────────────────────────────
 frontend/public/sw.js
 frontend/public/workbox-*.js
+
+# ─── Local tooling (not part of the deliverable) ──────────────────────────────
+.claude/
+frontend/dev-dist/
