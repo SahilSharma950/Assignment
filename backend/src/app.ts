@@ -26,6 +26,8 @@ import chatRoute from './routes/chat.routes.js';
 import notificationRoute from './routes/notification.routes.js';
 import searchRoute from './routes/search.routes.js';
 import analyticsRoute from './routes/analytics.routes.js';
+import { userRoute } from './routes/user.route.js';
+import { directMessageRoute } from './routes/directMessage.routes.js';
 
 // ─── App Factory ───────────────────────────────────────────────────────────────
 export const app: Express = express();
@@ -150,6 +152,8 @@ app.use('/api/v1/chat', chatRoute);
 app.use('/api/v1/notifications', notificationRoute);
 app.use('/api/v1/search', searchRoute);
 app.use('/api/v1/analytics', analyticsRoute);
+app.use('/api/v1/users', userRoute);
+app.use('/api/v1/dm', directMessageRoute);
 
 // Serve static uploads
 app.use('/uploads', express.static(env.UPLOAD_DIR));
