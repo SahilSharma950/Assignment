@@ -48,6 +48,21 @@ class BoardRepository {
   async delete(id: string | ObjectId): Promise<IBoard | null> {
     return Board.findByIdAndDelete(id);
   }
+
+  /**
+   * Finds the IDs of all boards in the given workspace (for cascade deletes).
+   */
+  async findIdsByWorkspace(workspaceId: string | ObjectId): Promise<string[]> {
+    const boards = await Board.find({ workspace: workspaceId }).select('_id');
+    return boards.map((b) => b._id.toString());
+  }
+
+  /**
+   * Deletes every board in the given workspace.
+   */
+  async deleteByWorkspace(workspaceId: string | ObjectId): Promise<void> {
+    await Board.deleteMany({ workspace: workspaceId });
+  }
 }
 
 export const boardRepository = new BoardRepository();

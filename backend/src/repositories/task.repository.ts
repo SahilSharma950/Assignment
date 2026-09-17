@@ -70,7 +70,12 @@ class TaskRepository {
   async update(id: string | ObjectId, data: Partial<ITask>, session?: mongoose.ClientSession): Promise<ITask | null> {
     const options: any = { new: true, runValidators: true };
     if (session) options.session = session;
-    const task = await Task.findByIdAndUpdate(id, data, options);
+    // Populate to match every other task-returning endpoint (create/find/assign) —
+    // otherwise assignees/createdBy come back as raw ObjectIds here only, and
+    // the frontend (which expects populated user objects) crashes rendering them.
+    const task = await Task.findByIdAndUpdate(id, data, options)
+      .populate('createdBy', 'name email avatar')
+      .populate('assignees', 'name email avatar');
     return task as ITask | null;
   }
 
@@ -82,6 +87,21 @@ class TaskRepository {
     if (session) options.session = session;
     const task = await Task.findByIdAndDelete(id, options);
     return task as ITask | null;
+  }
+
+  /**
+   * Finds the IDs of all tasks in the given lists (for cascade deletes).
+   */
+  async findIdsByLists(listIds: (string | ObjectId)[]): Promise<string[]> {
+    const tasks = await Task.find({ list: { $in: listIds } }).select('_id');
+    return tasks.map((t) => t._id.toString());
+  }
+
+  /**
+   * Deletes every task in the given lists.
+   */
+  async deleteByLists(listIds: (string | ObjectId)[]): Promise<void> {
+    await Task.deleteMany({ list: { $in: listIds } });
   }
 
   /**

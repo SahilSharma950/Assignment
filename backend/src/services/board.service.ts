@@ -4,6 +4,7 @@ import { workspaceService } from './workspace.service.js';
 import { ForbiddenError, NotFoundError } from '../utils/AppError.js';
 import { IBoard } from '../models/board.model.js';
 import { cacheService } from './cache.service.js';
+import { deleteListsForBoards } from '../utils/cascadeDelete.js';
 import mongoose from 'mongoose';
 
 export interface CreateBoardDTO {
@@ -132,7 +133,7 @@ class BoardService {
   }
 
   /**
-   * Deletes a board.
+   * Deletes a board, along with every list/task (and their comments/attachments) on it.
    * Only the user who created the board or the workspace owner can delete it.
    */
   async deleteBoard(boardId: string, userId: string): Promise<void> {
@@ -145,13 +146,13 @@ class BoardService {
     // Get workspace to check if user is the owner of the workspace
     const workspace = await workspaceService.getWorkspaceById(board.workspace.toString(), userId);
 
-    const creatorIdStr = typeof board.createdBy === 'object' && board.createdBy._id 
-      ? board.createdBy._id.toString() 
+    const creatorIdStr = typeof board.createdBy === 'object' && board.createdBy._id
+      ? board.createdBy._id.toString()
       : board.createdBy.toString();
     const isBoardCreator = creatorIdStr === userId;
-    
-    const workspaceOwnerIdStr = typeof workspace.owner === 'object' && workspace.owner._id 
-      ? workspace.owner._id.toString() 
+
+    const workspaceOwnerIdStr = typeof workspace.owner === 'object' && workspace.owner._id
+      ? workspace.owner._id.toString()
       : workspace.owner.toString();
     const isWorkspaceOwner = workspaceOwnerIdStr === userId;
 
@@ -159,6 +160,7 @@ class BoardService {
       throw new ForbiddenError('Only the board creator or workspace owner can delete this board');
     }
 
+    await deleteListsForBoards([boardId]);
     await boardRepository.delete(boardId);
     await cacheService.del(`board:${boardId}`);
   }

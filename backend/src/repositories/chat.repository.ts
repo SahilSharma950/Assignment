@@ -26,6 +26,13 @@ class ChatRepository {
     // Reverse the array so the oldest of the recent messages is first (standard chat flow)
     return messages.reverse();
   }
+
+  /**
+   * Deletes every chat message in the given workspace (for cascade deletes).
+   */
+  async deleteByWorkspace(workspaceId: string | ObjectId): Promise<void> {
+    await ChatMessage.deleteMany({ workspace: workspaceId });
+  }
 }
 
 export const chatRepository = new ChatRepository();

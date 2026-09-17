@@ -39,6 +39,21 @@ class AttachmentRepository {
     const attachment = await Attachment.findByIdAndDelete(id, options);
     return attachment as IAttachment | null;
   }
+
+  /**
+   * Finds every attachment on the given tasks (for cascade deletes — need the
+   * filenames before the records are gone so the physical files can be cleaned up).
+   */
+  async findByTasks(taskIds: (string | ObjectId)[]): Promise<IAttachment[]> {
+    return Attachment.find({ task: { $in: taskIds } });
+  }
+
+  /**
+   * Deletes every attachment record on the given tasks (for cascade deletes).
+   */
+  async deleteByTasks(taskIds: (string | ObjectId)[]): Promise<void> {
+    await Attachment.deleteMany({ task: { $in: taskIds } });
+  }
 }
 
 export const attachmentRepository = new AttachmentRepository();

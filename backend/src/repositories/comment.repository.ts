@@ -49,6 +49,13 @@ class CommentRepository {
     const comment = await Comment.findByIdAndDelete(id, options);
     return comment as IComment | null;
   }
+
+  /**
+   * Deletes every comment on the given tasks (for cascade deletes).
+   */
+  async deleteByTasks(taskIds: (string | ObjectId)[]): Promise<void> {
+    await Comment.deleteMany({ task: { $in: taskIds } });
+  }
 }
 
 export const commentRepository = new CommentRepository();

@@ -2,6 +2,7 @@ import { listRepository } from '../repositories/list.repository.js';
 import { boardService } from './board.service.js';
 import { NotFoundError } from '../utils/AppError.js';
 import { IList } from '../models/list.model.js';
+import { deleteTasksForLists } from '../utils/cascadeDelete.js';
 import mongoose from 'mongoose';
 
 export interface CreateListDTO {
@@ -80,7 +81,7 @@ class ListService {
   }
 
   /**
-   * Deletes a list.
+   * Deletes a list, along with every task (and their comments/attachments) in it.
    * Any workspace member can delete the list to facilitate collaboration.
    */
   async deleteList(listId: string, userId: string): Promise<void> {
@@ -92,6 +93,7 @@ class ListService {
     // Validate access to the board
     await boardService.getBoardById(list.board.toString(), userId);
 
+    await deleteTasksForLists([listId]);
     await listRepository.delete(listId);
   }
 }

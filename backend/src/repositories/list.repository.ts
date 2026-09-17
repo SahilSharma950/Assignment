@@ -45,6 +45,21 @@ class ListRepository {
   async delete(id: string | ObjectId): Promise<IList | null> {
     return List.findByIdAndDelete(id);
   }
+
+  /**
+   * Finds the IDs of all lists in the given boards (for cascade deletes).
+   */
+  async findIdsByBoards(boardIds: (string | ObjectId)[]): Promise<string[]> {
+    const lists = await List.find({ board: { $in: boardIds } }).select('_id');
+    return lists.map((l) => l._id.toString());
+  }
+
+  /**
+   * Deletes every list in the given boards.
+   */
+  async deleteByBoards(boardIds: (string | ObjectId)[]): Promise<void> {
+    await List.deleteMany({ board: { $in: boardIds } });
+  }
 }
 
 export const listRepository = new ListRepository();
